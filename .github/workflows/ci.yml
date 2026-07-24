@@ -41,12 +41,12 @@ jobs:
       - name: Build
         run: bun run build
 
-  node-agent:
-    name: node-agent
+  node-monitor:
+    name: node-monitor
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: apps/node-agent
+        working-directory: apps/node-monitor
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -54,7 +54,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v6
         with:
-          go-version-file: apps/node-agent/go.mod
+          go-version-file: apps/node-monitor/go.mod
 
       - name: Build
         run: go build ./...
@@ -62,8 +62,11 @@ jobs:
       - name: Vet
         run: go vet ./...
 
+      - name: Test
+        run: go test ./...
+
       - name: Lint (golangci-lint)
         uses: golangci/golangci-lint-action@v9
         with:
           version: v2.12
-          working-directory: apps/node-agent
+          working-directory: apps/node-monitor
