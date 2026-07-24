@@ -5,7 +5,7 @@ import {
   DeployResponseSchema,
   LogEntrySchema,
   ErrorSchema,
-} from "agent-protocol";
+} from "monitor-schemas";
 import type {
   LogEntry,
   DeploymentResult,

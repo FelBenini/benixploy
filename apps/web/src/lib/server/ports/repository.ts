@@ -5,6 +5,7 @@ import type { OrgMembership } from "../domain/org-membership";
 import type { Session } from "../domain/session";
 import type { Server, CreateServerInput } from "../domain/server";
 import type { User } from "../domain/user";
+import type { NodeEvent, NodeStats } from "../domain/node-event";
 
 export interface DbExecutor {
   insert(table: unknown): {
@@ -95,6 +96,25 @@ export interface SystemSetupRepository {
   tryAcquire(db: DbExecutor): Promise<boolean>;
 }
 
+export interface NodeEventRepository {
+  insertEvent(
+    serverId: string,
+    eventType: string,
+    payload: Record<string, unknown>,
+  ): Promise<NodeEvent>;
+  insertStats(
+    serverId: string,
+    stats: Omit<NodeStats, "id" | "receivedAt">,
+  ): Promise<NodeStats>;
+  getRecentEvents(
+    serverId: string,
+    limit?: number,
+    since?: string,
+  ): Promise<NodeEvent[]>;
+  getLatestStats(serverId: string): Promise<NodeStats | null>;
+  pruneEvents(olderThan: string): Promise<void>;
+}
+
 export interface Repository {
   servers: ServerRepository;
   apps: AppRepository;
@@ -104,4 +124,5 @@ export interface Repository {
   systemSetup: SystemSetupRepository;
   orgs: OrgRepository;
   memberships: OrgMembershipRepository;
+  nodeEvents: NodeEventRepository;
 }

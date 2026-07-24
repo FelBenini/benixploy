@@ -6,3 +6,4 @@ export { DrizzleDeploymentRepository } from "./deployments";
 export { DrizzleUserRepository } from "./users";
 export { DrizzleOrgRepository } from "./orgs";
 export { DrizzleOrgMembershipRepository } from "./org-memberships";
+export { DrizzleNodeEventRepository } from "./node-events";

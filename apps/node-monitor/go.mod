@@ -1,10 +1,9 @@
-module github.com/benisploy/node-agent
+module github.com/benisploy/node-monitor
 
-go 1.26.4
+go 1.22.0
 
 require (
-	github.com/benisploy/agent-protocol/go v0.0.0
-	github.com/gorilla/websocket v1.5.3
+	github.com/benisploy/monitor-schemas/go v0.0.0
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/stretchr/testify v1.9.0
 )
@@ -23,4 +22,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/benisploy/agent-protocol/go => ../../packages/agent-protocol/go
+replace github.com/benisploy/monitor-schemas/go => ../../packages/monitor-schemas/go
