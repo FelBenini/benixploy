@@ -252,7 +252,7 @@ Control plane ↔ node: SSH (exec + SFTP) for control, HTTPS (bearer token) for 
     /web                       # SvelteKit + TS + Bun — dashboard, control-plane API, Compose generator
     /node-monitor                # Go module — the only compiled node-side component
   /packages
-    /agent-protocol               # shared schemas: AppSpec + telemetry push payloads
+    /monitor-schemas               # shared schemas: AppSpec + telemetry push payloads
     /tool-schemas                 # JSON schema for orchestrator tools
   /templates                    # curated app catalog: compose specs + metadata
   /deploy

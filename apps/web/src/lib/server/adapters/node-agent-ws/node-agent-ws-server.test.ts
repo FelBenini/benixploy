@@ -115,6 +115,23 @@ const inMemRepo: Repository = {
       throw new Error("not implemented");
     },
   },
+  nodeEvents: {
+    async insertEvent() {
+      throw new Error("not implemented");
+    },
+    async insertStats() {
+      throw new Error("not implemented");
+    },
+    async getRecentEvents() {
+      throw new Error("not implemented");
+    },
+    async getLatestStats() {
+      throw new Error("not implemented");
+    },
+    async pruneEvents() {
+      throw new Error("not implemented");
+    },
+  },
 };
 
 function waitForMessage(

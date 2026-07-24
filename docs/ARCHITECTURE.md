@@ -158,7 +158,7 @@ Control plane ↔ node agent: WebSocket + JSON, validated against shared Zod sch
     /web                       # SvelteKit + TS + Bun — dashboard UI and control-plane API, one deployable
     /node-agent                 # Go module — installed on each managed VPS
   /packages
-    /agent-protocol              # shared JSON/Zod schemas for the control-plane <-> node-agent WebSocket protocol
+    /monitor-schemas             # shared JSON/Zod schemas for control-plane <-> node monitor
   /templates                    # curated app catalog: compose specs + metadata
   /deploy                       # compose file / install script
   /docs
@@ -268,7 +268,7 @@ Same app as the API (6.3) — SvelteKit's file-based routing interleaves page ro
 |---|---|
 | Node agent | Go, Docker Engine SDK, WebSocket client |
 | Control plane + dashboard | SvelteKit + TypeScript, Bun runtime, `adapter-node` |
-| Control-plane ↔ node-agent link | WebSocket + JSON, Zod schemas in `/packages/agent-protocol` |
+| Control-plane ↔ node link | JSON, Zod schemas in `/packages/monitor-schemas` |
 | Persistence | PostgreSQL, Drizzle ORM, `drizzle-kit` for migrations |
 | Event bus | In-process event emitter |
 | Reverse proxy (managed nodes) | Traefik |

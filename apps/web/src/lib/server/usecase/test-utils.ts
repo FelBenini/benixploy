@@ -30,6 +30,8 @@ import type {
   ContainerState,
 } from "../ports/node-command-client";
 import type { ServerStatusReport } from "../domain/server";
+import type { NodeEvent, NodeStats } from "../domain/node-event";
+import type { NodeEventRepository } from "../ports/repository";
 
 export const TEST_ORG_ID = "org-test";
 export const TEST_USER_ID = "user-test";
@@ -272,6 +274,54 @@ export class InMemoryMembershipRepo implements OrgMembershipRepository {
   }
 }
 
+export class InMemoryNodeEventRepo implements NodeEventRepository {
+  events: NodeEvent[] = [];
+  stats: NodeStats[] = [];
+
+  async insertEvent(
+    serverId: string,
+    eventType: string,
+    payload: Record<string, unknown>,
+  ): Promise<NodeEvent> {
+    const ev: NodeEvent = {
+      id: crypto.randomUUID(),
+      serverId,
+      eventType: eventType as NodeEvent["eventType"],
+      payload,
+      receivedAt: new Date().toISOString(),
+    };
+    this.events.push(ev);
+    return ev;
+  }
+
+  async insertStats(
+    serverId: string,
+    s: Omit<NodeStats, "id" | "receivedAt">,
+  ): Promise<NodeStats> {
+    const st: NodeStats = {
+      id: crypto.randomUUID(),
+      ...s,
+      receivedAt: new Date().toISOString(),
+    };
+    this.stats.push(st);
+    return st;
+  }
+
+  async getRecentEvents(
+    serverId: string,
+    limit = 100,
+    _since?: string,
+  ): Promise<NodeEvent[]> {
+    return this.events.filter((e) => e.serverId === serverId).slice(0, limit);
+  }
+
+  async getLatestStats(serverId: string): Promise<NodeStats | null> {
+    return this.stats.find((s) => s.serverId === serverId) ?? null;
+  }
+
+  async pruneEvents(_olderThan: string): Promise<void> {}
+}
+
 export class InMemoryRepository implements Repository {
   apps: InMemoryAppRepo;
   servers: InMemoryServerRepo;
@@ -281,6 +331,7 @@ export class InMemoryRepository implements Repository {
   systemSetup: InMemorySystemSetupRepo;
   orgs: InMemoryOrgRepo;
   memberships: InMemoryMembershipRepo;
+  nodeEvents: InMemoryNodeEventRepo;
 
   constructor() {
     this.apps = new InMemoryAppRepo();
@@ -291,6 +342,7 @@ export class InMemoryRepository implements Repository {
     this.systemSetup = new InMemorySystemSetupRepo();
     this.orgs = new InMemoryOrgRepo();
     this.memberships = new InMemoryMembershipRepo();
+    this.nodeEvents = new InMemoryNodeEventRepo();
   }
 }
 

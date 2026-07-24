@@ -19,7 +19,7 @@
   /web                       # SvelteKit + TS + Bun — dashboard UI and control-plane API, one deployable
   /node-agent                 # Go module — installed on each managed VPS
 /packages
-  /agent-protocol              # shared JSON/Zod schemas for control-plane <-> node-agent WS protocol
+  /monitor-schemas             # shared JSON/Zod schemas for control-plane <-> node monitor
   /tool-schemas                 # JSON schema for orchestrator tools (source of truth for AI agent)
 /templates                    # curated app catalog (future)
 /deploy                       # compose file / install script (future)

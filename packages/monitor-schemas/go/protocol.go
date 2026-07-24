@@ -1,7 +1,7 @@
 // Package protocol defines the shared wire protocol between the control plane
 // and the node monitor.
 //
-// The TypeScript implementation (packages/agent-protocol/src/index.ts)
+// The TypeScript implementation (packages/monitor-schemas/src/index.ts)
 // remains the source of truth. This package mirrors the JSON schema for Go
 // producers.
 //
