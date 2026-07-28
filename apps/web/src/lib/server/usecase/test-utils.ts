@@ -14,6 +14,8 @@ import type {
   SystemSetupRepository,
   OrgRepository,
   OrgMembershipRepository,
+  RegisteredNodeRepository,
+  RegistrationTokenRepository,
 } from "../ports/repository";
 import type { Session } from "../domain/session";
 import type { Org } from "../domain/org";
@@ -32,6 +34,8 @@ import type {
 import type { ServerStatusReport } from "../domain/server";
 import type { NodeEvent, NodeStats } from "../domain/node-event";
 import type { NodeEventRepository } from "../ports/repository";
+import type { RegisteredNode } from "../domain/registered-node";
+import type { RegistrationToken } from "../domain/registration-token";
 
 export const TEST_ORG_ID = "org-test";
 export const TEST_USER_ID = "user-test";
@@ -282,10 +286,12 @@ export class InMemoryNodeEventRepo implements NodeEventRepository {
     serverId: string,
     eventType: string,
     payload: Record<string, unknown>,
+    appId?: string,
   ): Promise<NodeEvent> {
     const ev: NodeEvent = {
       id: crypto.randomUUID(),
       serverId,
+      appId,
       eventType: eventType as NodeEvent["eventType"],
       payload,
       receivedAt: new Date().toISOString(),
@@ -322,6 +328,91 @@ export class InMemoryNodeEventRepo implements NodeEventRepository {
   async pruneEvents(_olderThan: string): Promise<void> {}
 }
 
+export class InMemoryRegisteredNodeRepo implements RegisteredNodeRepository {
+  data = new Map<string, RegisteredNode>();
+
+  async create(
+    input: Parameters<RegisteredNodeRepository["create"]>[0],
+  ): Promise<RegisteredNode> {
+    const node: RegisteredNode = {
+      id: input.id,
+      serverId: input.serverId,
+      sshPublicKey: input.sshPublicKey,
+      monitorBearerToken: input.monitorBearerToken,
+      status: "active",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    this.data.set(input.serverId, node);
+    return node;
+  }
+
+  async getByServer(serverId: string): Promise<RegisteredNode | null> {
+    return this.data.get(serverId) ?? null;
+  }
+
+  async updateStatus(serverId: string, status: string): Promise<void> {
+    const node = this.data.get(serverId);
+    if (node) {
+      node.status = status as RegisteredNode["status"];
+      node.updatedAt = new Date().toISOString();
+    }
+  }
+
+  async delete(serverId: string): Promise<void> {
+    this.data.delete(serverId);
+  }
+}
+
+export class InMemoryRegistrationTokenRepo implements RegistrationTokenRepository {
+  data = new Map<string, RegistrationToken>();
+
+  async create(
+    input: Parameters<RegistrationTokenRepository["create"]>[0],
+  ): Promise<RegistrationToken> {
+    const token: RegistrationToken = {
+      id: input.id,
+      tokenHash: input.tokenHash,
+      serverId: null,
+      expiresAt: input.expiresAt,
+      usedAt: null,
+      createdAt: new Date().toISOString(),
+    };
+    this.data.set(token.id, token);
+    return token;
+  }
+
+  async findByHash(tokenHash: string): Promise<RegistrationToken | null> {
+    for (const token of this.data.values()) {
+      if (
+        token.tokenHash === tokenHash &&
+        !token.usedAt &&
+        new Date(token.expiresAt) > new Date()
+      ) {
+        return token;
+      }
+    }
+    return null;
+  }
+
+  async markUsed(id: string, serverId: string): Promise<void> {
+    const token = this.data.get(id);
+    if (token) {
+      token.serverId = serverId;
+      token.usedAt = new Date().toISOString();
+    }
+  }
+
+  async pruneExpired(): Promise<void> {
+    const now = new Date();
+    for (const [id, token] of this.data) {
+      if (new Date(token.expiresAt) < now) {
+        this.data.delete(id);
+      }
+    }
+  }
+}
+
 export class InMemoryRepository implements Repository {
   apps: InMemoryAppRepo;
   servers: InMemoryServerRepo;
@@ -332,6 +423,8 @@ export class InMemoryRepository implements Repository {
   orgs: InMemoryOrgRepo;
   memberships: InMemoryMembershipRepo;
   nodeEvents: InMemoryNodeEventRepo;
+  registeredNodes: InMemoryRegisteredNodeRepo;
+  registrationTokens: InMemoryRegistrationTokenRepo;
 
   constructor() {
     this.apps = new InMemoryAppRepo();
@@ -343,6 +436,8 @@ export class InMemoryRepository implements Repository {
     this.orgs = new InMemoryOrgRepo();
     this.memberships = new InMemoryMembershipRepo();
     this.nodeEvents = new InMemoryNodeEventRepo();
+    this.registeredNodes = new InMemoryRegisteredNodeRepo();
+    this.registrationTokens = new InMemoryRegistrationTokenRepo();
   }
 }
 

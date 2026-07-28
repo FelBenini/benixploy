@@ -19,6 +19,7 @@ export const deployments = pgTable(
     version: integer().notNull(),
     status: text().notNull().default("pending"),
     appSpec: jsonb().notNull(),
+    composeYaml: text("compose_yaml"),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },

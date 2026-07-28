@@ -20,6 +20,13 @@ export const DeploymentSchema = z.object({
   serverId: z.string().min(1).describe("Server this deployment runs on"),
   status: DeploymentStatusSchema.default("pending"),
   appSpec: AppSpecSchema.describe("Snapshot of the AppSpec at deployment time"),
+  composeYaml: z
+    .string()
+    .nullable()
+    .optional()
+    .describe(
+      "The generated docker-compose.yml used for this deployment, stored for rollback",
+    ),
   version: z
     .number()
     .int()

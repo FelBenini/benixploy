@@ -6,6 +6,14 @@ import type { Session } from "../domain/session";
 import type { Server, CreateServerInput } from "../domain/server";
 import type { User } from "../domain/user";
 import type { NodeEvent, NodeStats } from "../domain/node-event";
+import type {
+  RegisteredNode,
+  CreateRegisteredNodeInput,
+} from "../domain/registered-node";
+import type {
+  RegistrationToken,
+  CreateRegistrationTokenInput,
+} from "../domain/registration-token";
 
 export interface DbExecutor {
   insert(table: unknown): {
@@ -101,6 +109,7 @@ export interface NodeEventRepository {
     serverId: string,
     eventType: string,
     payload: Record<string, unknown>,
+    appId?: string,
   ): Promise<NodeEvent>;
   insertStats(
     serverId: string,
@@ -115,6 +124,24 @@ export interface NodeEventRepository {
   pruneEvents(olderThan: string): Promise<void>;
 }
 
+export interface RegisteredNodeRepository {
+  create(
+    input: CreateRegisteredNodeInput & { id: string },
+  ): Promise<RegisteredNode>;
+  getByServer(serverId: string): Promise<RegisteredNode | null>;
+  updateStatus(serverId: string, status: string): Promise<void>;
+  delete(serverId: string): Promise<void>;
+}
+
+export interface RegistrationTokenRepository {
+  create(
+    input: CreateRegistrationTokenInput & { id: string },
+  ): Promise<RegistrationToken>;
+  findByHash(tokenHash: string): Promise<RegistrationToken | null>;
+  markUsed(id: string, serverId: string): Promise<void>;
+  pruneExpired(): Promise<void>;
+}
+
 export interface Repository {
   servers: ServerRepository;
   apps: AppRepository;
@@ -125,4 +152,6 @@ export interface Repository {
   orgs: OrgRepository;
   memberships: OrgMembershipRepository;
   nodeEvents: NodeEventRepository;
+  registeredNodes: RegisteredNodeRepository;
+  registrationTokens: RegistrationTokenRepository;
 }

@@ -27,6 +27,7 @@ function toEventDomain(row: typeof nodeEvents.$inferSelect): NodeEvent {
   return {
     id: row.id,
     serverId: row.serverId,
+    appId: row.appId ?? undefined,
     eventType: row.eventType as NodeEvent["eventType"],
     payload: row.payload as Record<string, unknown>,
     receivedAt: row.receivedAt.toISOString(),
@@ -57,12 +58,14 @@ export class DrizzleNodeEventRepository implements NodeEventRepository {
     serverId: string,
     eventType: string,
     payload: Record<string, unknown>,
+    appId?: string,
   ): Promise<NodeEvent> {
     const [row] = await this.db
       .insert(nodeEvents)
       .values({
         id: crypto.randomUUID(),
         serverId,
+        appId: appId ?? null,
         eventType,
         payload,
         receivedAt: new Date(),

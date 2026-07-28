@@ -132,6 +132,34 @@ const inMemRepo: Repository = {
       throw new Error("not implemented");
     },
   },
+  registeredNodes: {
+    async create() {
+      throw new Error("not implemented");
+    },
+    async getByServer() {
+      throw new Error("not implemented");
+    },
+    async updateStatus() {
+      throw new Error("not implemented");
+    },
+    async delete() {
+      throw new Error("not implemented");
+    },
+  },
+  registrationTokens: {
+    async create() {
+      throw new Error("not implemented");
+    },
+    async findByHash() {
+      throw new Error("not implemented");
+    },
+    async markUsed() {
+      throw new Error("not implemented");
+    },
+    async pruneExpired() {
+      throw new Error("not implemented");
+    },
+  },
 };
 
 function waitForMessage(
