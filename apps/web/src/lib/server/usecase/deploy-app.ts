@@ -1,15 +1,19 @@
 import type { Repository } from "../ports/repository";
-import type { NodeAgentClient } from "../ports/node-agent-client";
+import type { NodeCommandClient } from "../ports/node-command-client";
 import type { App } from "../domain/app";
 import type { AppSpec } from "../domain/app-spec";
 import type { Deployment } from "../domain/deployment";
+import { generateComposeYaml } from "../adapters/compose-gen";
 
 export interface DeployAppOutput {
   app: App;
   deployment: Deployment;
 }
 
-export function createDeployApp(repo: Repository, nodeAgent: NodeAgentClient) {
+export function createDeployApp(
+  repo: Repository,
+  nodeClient: NodeCommandClient,
+) {
   return async function deployApp(
     orgId: string,
     appSpec: AppSpec,
@@ -48,11 +52,16 @@ export function createDeployApp(repo: Repository, nodeAgent: NodeAgentClient) {
       "executing",
     );
 
+    const composeYaml = generateComposeYaml(appSpec);
+
     try {
-      await nodeAgent.sendDeploy(serverId, createdDeployment.id, appSpec, {
-        orgId,
-        appId: createdApp.id,
-      });
+      for await (const _entry of nodeClient.deploy(
+        serverId,
+        createdApp.id,
+        composeYaml,
+      )) {
+        // Log entries yielded here; can be stored or forwarded
+      }
     } catch (err) {
       await repo.deployments.updateStatus(
         orgId,
@@ -62,6 +71,9 @@ export function createDeployApp(repo: Repository, nodeAgent: NodeAgentClient) {
       await repo.apps.updateStatus(orgId, createdApp.id, "degraded");
       throw err;
     }
+
+    await repo.deployments.updateStatus(orgId, createdDeployment.id, "healthy");
+    await repo.apps.updateStatus(orgId, createdApp.id, "healthy");
 
     const finalApp = (await repo.apps.get(orgId, createdApp.id))!;
     const finalDeployment = (await repo.deployments.getLatest(

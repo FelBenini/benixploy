@@ -1,17 +1,17 @@
 import { describe, it, expect } from "vitest";
 import {
   InMemoryRepository,
-  FakeNodeAgentClient,
+  FakeNodeCommandClient,
   validAppSpec,
   TEST_ORG_ID,
 } from "./test-utils";
 import { createDeployApp } from "./deploy-app";
 
 describe("deployApp", () => {
-  it("creates an app and deployment with executing status", async () => {
+  it("creates an app and deployment with healthy status", async () => {
     const repo = new InMemoryRepository();
-    const nodeAgent = new FakeNodeAgentClient();
-    const deployApp = createDeployApp(repo, nodeAgent);
+    const nodeClient = new FakeNodeCommandClient();
+    const deployApp = createDeployApp(repo, nodeClient);
 
     const serverId = "server-1";
     const spec = validAppSpec();
@@ -20,30 +20,30 @@ describe("deployApp", () => {
 
     expect(result.app.name).toBe("test-app");
     expect(result.app.serverId).toBe(serverId);
-    expect(result.app.status).toBe("deploying");
-    expect(result.deployment.status).toBe("executing");
+    expect(result.app.status).toBe("healthy");
+    expect(result.deployment.status).toBe("healthy");
     expect(result.deployment.version).toBe(1);
   });
 
-  it("calls the node agent to deploy", async () => {
+  it("calls the node client to deploy with generated compose YAML", async () => {
     const repo = new InMemoryRepository();
-    const nodeAgent = new FakeNodeAgentClient();
-    const deployApp = createDeployApp(repo, nodeAgent);
+    const nodeClient = new FakeNodeCommandClient();
+    const deployApp = createDeployApp(repo, nodeClient);
 
     const serverId = "server-2";
     const spec = validAppSpec({ name: "nginx-app" });
     const result = await deployApp(TEST_ORG_ID, spec, serverId);
 
-    expect(nodeAgent.deployed).toHaveLength(1);
-    expect(nodeAgent.deployed[0].serverId).toBe(serverId);
-    expect(nodeAgent.deployed[0].deploymentId).toBe(result.deployment.id);
-    expect(nodeAgent.deployed[0].appSpec.name).toBe("nginx-app");
+    expect(nodeClient.deployed).toHaveLength(1);
+    expect(nodeClient.deployed[0].serverId).toBe(serverId);
+    expect(nodeClient.deployed[0].appId).toBe(result.app.id);
+    expect(nodeClient.deployed[0].composeYaml).toContain("nginx:alpine");
   });
 
   it("persists app and deployment in the repository", async () => {
     const repo = new InMemoryRepository();
-    const nodeAgent = new FakeNodeAgentClient();
-    const deployApp = createDeployApp(repo, nodeAgent);
+    const nodeClient = new FakeNodeCommandClient();
+    const deployApp = createDeployApp(repo, nodeClient);
 
     const serverId = "server-3";
     const spec = validAppSpec({ name: "persisted-app" });
@@ -60,19 +60,17 @@ describe("deployApp", () => {
     expect(storedDeployments).toHaveLength(1);
   });
 
-  it("marks deployment as failed on node agent error", async () => {
+  it("marks deployment as failed on node client error", async () => {
     const repo = new InMemoryRepository();
-    const nodeAgent = new FakeNodeAgentClient();
-    nodeAgent.sendDeployImpl = async () => {
-      throw new Error("agent disconnected");
-    };
-    const deployApp = createDeployApp(repo, nodeAgent);
+    const nodeClient = new FakeNodeCommandClient();
+    nodeClient.deployError = new Error("ssh connection failed");
+    const deployApp = createDeployApp(repo, nodeClient);
 
     const serverId = "server-5";
     const spec = validAppSpec();
 
     await expect(deployApp(TEST_ORG_ID, spec, serverId)).rejects.toThrow(
-      "agent disconnected",
+      "ssh connection failed",
     );
 
     const apps = await repo.apps.list(TEST_ORG_ID);
@@ -89,12 +87,10 @@ describe("deployApp", () => {
 
   it("transitions deployment to executing state", async () => {
     const repo = new InMemoryRepository();
-    const nodeAgent = new FakeNodeAgentClient();
-    const deployApp = createDeployApp(repo, nodeAgent);
+    const nodeClient = new FakeNodeCommandClient();
+    const deployApp = createDeployApp(repo, nodeClient);
 
     const result = await deployApp(TEST_ORG_ID, validAppSpec(), "server-4");
-
-    expect(result.deployment.status).toBe("executing");
 
     const initialDeployments = await repo.deployments.listForApp(
       TEST_ORG_ID,
@@ -102,6 +98,6 @@ describe("deployApp", () => {
     );
     const dep = initialDeployments[0];
     expect(dep.id).toBe(result.deployment.id);
-    expect(dep.status).toBe("executing");
+    expect(dep.status).toBe("healthy");
   });
 });

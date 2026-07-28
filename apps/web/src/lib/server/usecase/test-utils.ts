@@ -21,17 +21,10 @@ import type { Session } from "../domain/session";
 import type { Org } from "../domain/org";
 import type { OrgMembership } from "../domain/org-membership";
 import type {
-  NodeAgentClient,
-  LogEntry,
-  DeploymentResult,
-  DeploymentMeta,
-} from "../ports/node-agent-client";
-import type {
   NodeCommandClient as NodeCommandClientType,
   LogEntry as NodeCommandLogEntry,
   ContainerState,
 } from "../ports/node-command-client";
-import type { ServerStatusReport } from "../domain/server";
 import type { NodeEvent, NodeStats } from "../domain/node-event";
 import type { NodeEventRepository } from "../ports/repository";
 import type { RegisteredNode } from "../domain/registered-node";
@@ -482,98 +475,6 @@ export class FakeNodeCommandClient implements NodeCommandClientType {
 
   async isReachable(_serverId: string): Promise<boolean> {
     return true;
-  }
-}
-
-export class FakeNodeAgentClient implements NodeAgentClient {
-  deployed: Array<{
-    serverId: string;
-    deploymentId: string;
-    appSpec: AppSpec;
-  }> = [];
-  statusReport: ServerStatusReport = {
-    cpuPercent: 25,
-    memoryUsed: 4_000_000_000,
-    memoryTotal: 8_000_000_000,
-    diskUsed: 50_000_000_000,
-    diskTotal: 100_000_000_000,
-    containerCount: 3,
-    uptimeSeconds: 3600,
-  };
-  logs: LogEntry[] = [];
-  sendDeployImpl?: (
-    serverId: string,
-    deploymentId: string,
-    appSpec: AppSpec,
-  ) => Promise<void>;
-
-  private logCallbacks = new Map<string, Set<(entry: LogEntry) => void>>();
-  private completeCallbacks = new Map<
-    string,
-    Set<(result: DeploymentResult) => void>
-  >();
-
-  async sendDeploy(
-    serverId: string,
-    deploymentId: string,
-    appSpec: AppSpec,
-    _meta?: DeploymentMeta,
-  ): Promise<void> {
-    if (this.sendDeployImpl) {
-      await this.sendDeployImpl(serverId, deploymentId, appSpec);
-      return;
-    }
-    this.deployed.push({ serverId, deploymentId, appSpec });
-  }
-
-  async getStatus(_serverId: string): Promise<ServerStatusReport> {
-    return this.statusReport;
-  }
-
-  async streamLogs(
-    _serverId: string,
-    _appId: string,
-    _lines: number,
-  ): Promise<LogEntry[]> {
-    return this.logs;
-  }
-
-  async restartApp(_serverId: string, _appId: string): Promise<void> {}
-
-  async removeApp(
-    _serverId: string,
-    _appId: string,
-    _removeVolumes: boolean,
-  ): Promise<void> {}
-
-  async healthCheck(_serverId: string): Promise<boolean> {
-    return true;
-  }
-
-  onDeploymentLog(
-    deploymentId: string,
-    callback: (entry: LogEntry) => void,
-  ): () => void {
-    if (!this.logCallbacks.has(deploymentId)) {
-      this.logCallbacks.set(deploymentId, new Set());
-    }
-    this.logCallbacks.get(deploymentId)!.add(callback);
-    return () => {
-      this.logCallbacks.get(deploymentId)?.delete(callback);
-    };
-  }
-
-  onDeploymentComplete(
-    deploymentId: string,
-    callback: (result: DeploymentResult) => void,
-  ): () => void {
-    if (!this.completeCallbacks.has(deploymentId)) {
-      this.completeCallbacks.set(deploymentId, new Set());
-    }
-    this.completeCallbacks.get(deploymentId)!.add(callback);
-    return () => {
-      this.completeCallbacks.get(deploymentId)?.delete(callback);
-    };
   }
 }
 

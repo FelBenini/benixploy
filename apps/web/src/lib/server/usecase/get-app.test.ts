@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   InMemoryRepository,
   validAppSpec,
-  FakeNodeAgentClient,
+  FakeNodeCommandClient,
   TEST_ORG_ID,
 } from "./test-utils";
 import { createGetApp } from "./get-app";
@@ -20,8 +20,8 @@ describe("getApp", () => {
 
   it("returns an existing app with its current deployment", async () => {
     const repo = new InMemoryRepository();
-    const nodeAgent = new FakeNodeAgentClient();
-    const deployApp = createDeployApp(repo, nodeAgent);
+    const nodeClient = new FakeNodeCommandClient();
+    const deployApp = createDeployApp(repo, nodeClient);
     const getApp = createGetApp(repo);
 
     const deployResult = await deployApp(

@@ -21,20 +21,19 @@ setup:
 dev: db-up
 	@trap 'kill 0' EXIT; \
 	cd apps/web && bun run dev & \
-	cd apps/node-agent && go run ./cmd/agent & \
 	wait
 
 test:
 	@cd apps/web && bun run test
-	@cd apps/node-agent && go test ./...
+	@cd apps/node-monitor && go test ./...
 
 lint:
 	@cd apps/web && bun run lint
-	@cd apps/node-agent && golangci-lint run ./...
+	@cd apps/node-monitor && golangci-lint run ./...
 
 build:
 	@cd apps/web && bun run build
-	@cd apps/node-agent && go build -o ../../build/node-agent ./cmd/agent
+	@cd apps/node-monitor && go build -o ../../build/node-monitor ./cmd/monitor
 
 db-up:
 	@if docker compose -f $(COMPOSE_FILE) ps --status running --format '{{.Name}}' 2>/dev/null | grep -q postgres; then \
