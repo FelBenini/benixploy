@@ -9,7 +9,7 @@ import { createRegisterServer } from "../../usecase/register-server";
 import { createDeployApp } from "../../usecase/deploy-app";
 import { createGetApp } from "../../usecase/get-app";
 import { createListApps } from "../../usecase/list-apps";
-import { validAppSpec, FakeNodeAgentClient } from "../../usecase/test-utils";
+import { validAppSpec, FakeNodeCommandClient } from "../../usecase/test-utils";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import * as schema from "../../db/schema";
 
@@ -83,8 +83,8 @@ describe("DrizzleRepository integration", () => {
 
     const repo = new DrizzleRepository(db);
     const registerServer = createRegisterServer(repo);
-    const nodeAgent = new FakeNodeAgentClient();
-    const deployApp = createDeployApp(repo, nodeAgent);
+    const nodeClient = new FakeNodeCommandClient();
+    const deployApp = createDeployApp(repo, nodeClient);
 
     const server = await registerServer(ORG, {
       name: "deploy-target",
@@ -103,9 +103,9 @@ describe("DrizzleRepository integration", () => {
     );
 
     expect(result.app.name).toBe("int-app");
-    expect(result.app.status).toBe("deploying");
+    expect(result.app.status).toBe("healthy");
     expect(result.deployment.version).toBe(1);
-    expect(result.deployment.status).toBe("executing");
+    expect(result.deployment.status).toBe("healthy");
 
     const stored = await repo.apps.get(ORG, result.app.id);
     expect(stored).not.toBeNull();
@@ -120,8 +120,8 @@ describe("DrizzleRepository integration", () => {
 
     const repo = new DrizzleRepository(db);
     const registerServer = createRegisterServer(repo);
-    const nodeAgent = new FakeNodeAgentClient();
-    const deployApp = createDeployApp(repo, nodeAgent);
+    const nodeClient = new FakeNodeCommandClient();
+    const deployApp = createDeployApp(repo, nodeClient);
     const getApp = createGetApp(repo);
 
     const server = await registerServer(ORG, {
@@ -153,8 +153,8 @@ describe("DrizzleRepository integration", () => {
 
     const repo = new DrizzleRepository(db);
     const registerServer = createRegisterServer(repo);
-    const nodeAgent = new FakeNodeAgentClient();
-    const deployApp = createDeployApp(repo, nodeAgent);
+    const nodeClient = new FakeNodeCommandClient();
+    const deployApp = createDeployApp(repo, nodeClient);
     const listApps = createListApps(repo);
 
     const serverA = await registerServer(ORG, {
