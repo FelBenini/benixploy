@@ -1,6 +1,7 @@
 export interface NodeEvent {
   id: string;
   serverId: string;
+  appId?: string;
   eventType: "die" | "oom" | "unhealthy" | "restart_loop";
   payload: Record<string, unknown>;
   receivedAt: string;

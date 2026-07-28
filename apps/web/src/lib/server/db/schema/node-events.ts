@@ -8,23 +8,31 @@ import {
   bigint,
 } from "drizzle-orm/pg-core";
 import { servers } from "./servers";
+import { apps } from "./apps";
 
 export const nodeEvents = pgTable(
   "node_events",
   {
     id: text().primaryKey(),
-    serverId: text()
+    serverId: text("server_id")
       .notNull()
       .references(() => servers.id, { onDelete: "cascade" }),
-    eventType: text().notNull(),
+    appId: text("app_id").references(() => apps.id, { onDelete: "set null" }),
+    eventType: text("event_type").notNull(),
     payload: jsonb().notNull(),
-    receivedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    receivedAt: timestamp("received_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
     index("node_events_server_idx").on(table.serverId),
     index("node_events_type_idx").on(table.eventType),
     index("node_events_received_idx").on(table.receivedAt),
     index("node_events_server_type_idx").on(table.serverId, table.eventType),
+    index("node_events_server_received_idx").on(
+      table.serverId,
+      table.receivedAt,
+    ),
   ],
 );
 

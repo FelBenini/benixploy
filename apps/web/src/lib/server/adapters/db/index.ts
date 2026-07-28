@@ -7,3 +7,5 @@ export { DrizzleUserRepository } from "./users";
 export { DrizzleOrgRepository } from "./orgs";
 export { DrizzleOrgMembershipRepository } from "./org-memberships";
 export { DrizzleNodeEventRepository } from "./node-events";
+export { DrizzleRegisteredNodeRepository } from "./registered-nodes";
+export { DrizzleRegistrationTokenRepository } from "./registration-tokens";

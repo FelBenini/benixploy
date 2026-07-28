@@ -9,3 +9,5 @@ export { auditLog } from "./audit-log";
 export { sessions } from "./sessions";
 export { systemSetup } from "./system-setup";
 export { nodeEvents, nodeStats } from "./node-events";
+export { registeredNodes } from "./registered-nodes";
+export { registrationTokens } from "./registration-tokens";
