@@ -1,20 +1,14 @@
 <script lang="ts">
-  let { data } = $props();
+  import { Button } from "$lib/components/ui/button";
+  import { Input } from "$lib/components/ui/input";
+  import { cn } from "$lib/utils.js";
 
-  let loggingOut = $state(false);
   let deploying = $state(false);
-
-  async function logout() {
-    loggingOut = true;
-    try {
-      await fetch("/api/auth/logout", { method: "POST" });
-    } finally {
-      window.location.href = "/login";
-    }
-  }
   let deployResult = $state<unknown>(null);
   let deployError = $state<string | null>(null);
-  let deployLogs = $state<Array<{ timestamp: string; stream: string; message: string }>>([]);
+  let deployLogs = $state<
+    Array<{ timestamp: string; stream: string; message: string }>
+  >([]);
   let deployStatus = $state<string | null>(null);
 
   let appName = $state("test-app");
@@ -63,7 +57,9 @@
           appSpec: {
             name: appName || "test-app",
             image: dockerImage || "nginx:alpine",
-            ports: containerPort ? [{ container: parseInt(containerPort), protocol: "tcp" }] : [],
+            ports: containerPort
+              ? [{ container: parseInt(containerPort), protocol: "tcp" }]
+              : [],
             envVars,
           },
         }),
@@ -87,7 +83,9 @@
   }
 
   function subscribeToDeploymentLogs(deploymentId: string) {
-    const evtSource = new EventSource(`/api/deployments/${deploymentId}/events`);
+    const evtSource = new EventSource(
+      `/api/deployments/${deploymentId}/events`,
+    );
 
     evtSource.onmessage = (event) => {
       try {
@@ -139,280 +137,134 @@
   <title>Dashboard — Benisploy</title>
 </svelte:head>
 
-<div class="page">
-  <header>
-    <h1>Benisploy</h1>
-    <button onclick={logout} disabled={loggingOut}>
-      {loggingOut ? "Signing out…" : "Sign out"}
-    </button>
-  </header>
-
-  <main>
-    <section>
-      <h2>Test Deployment</h2>
-      <p class="hint">
-        Deploys to <strong>{servers[0]?.name ?? "—"}</strong>
-        {#if servers.length === 0}
-          <em>(no servers found — register one first via <code>POST /api/servers</code>)</em>
-        {/if}
-      </p>
-
-      <form onsubmit={(e) => { e.preventDefault(); deploy(); }}>
-        <label>
-          App name
-          <input type="text" bind:value={appName} placeholder="my-app" />
-        </label>
-
-        <label>
-          Docker image
-          <input type="text" bind:value={dockerImage} placeholder="nginx:alpine" />
-        </label>
-
-        <label>
-          Container port
-          <input type="number" bind:value={containerPort} placeholder="80" min="1" max="65535" />
-        </label>
-
-        <fieldset>
-          <legend>Environment variables (optional)</legend>
-
-          <div class="env-row">
-            <input type="text" bind:value={envKey} placeholder="KEY" />
-            <input type="text" bind:value={envVal} placeholder="value" />
-            <button type="button" onclick={addEnvVar}>Add</button>
-          </div>
-
-          {#each Object.entries(envVars) as [key, val] (key)}
-            <div class="env-row">
-              <code>{key}</code>
-              <span>=</span>
-              <code>{val}</code>
-              <button type="button" onclick={() => removeEnvVar(key)}>✕</button>
-            </div>
-          {/each}
-        </fieldset>
-
-        <button type="submit" disabled={deploying || servers.length === 0}>
-          {deploying ? "Deploying…" : "Deploy"}
-        </button>
-      </form>
-
-      {#if deployLogs.length > 0}
-        <div class="logs" bind:this={logContainer}>
-          {#each deployLogs as log (log.timestamp + log.message)}
-            <div class="log-line" class:stderr={log.stream === "stderr"}>
-              <span class="log-stream">{log.stream === "stderr" ? "ERR" : "OUT"}</span>
-              <span class="log-msg">{log.message}</span>
-            </div>
-          {/each}
-        </div>
+<div class="flex flex-col gap-6">
+  <div>
+    <h1 class="text-foreground text-lg font-semibold">Test Deployment</h1>
+    <p class="text-muted-foreground text-sm">
+      Deploys to <strong>{servers[0]?.name ?? "—"}</strong>
+      {#if servers.length === 0}
+        <em>(no servers found — register one first via POST /api/servers)</em>
       {/if}
+    </p>
+  </div>
 
-      {#if deployStatus}
-        <div class="result" class:success={deployStatus === "healthy"} class:error={deployStatus === "failed"}>
-          <h3>{deployStatus === "healthy" ? "Deploy succeeded" : "Deploy failed"}</h3>
+  <form
+    onsubmit={(e) => {
+      e.preventDefault();
+      deploy();
+    }}
+    class="flex flex-col gap-4"
+  >
+    <div class="flex flex-col gap-1.5">
+      <label class="text-sm font-medium" for="app-name">App name</label>
+      <Input id="app-name" bind:value={appName} placeholder="my-app" />
+    </div>
+
+    <div class="flex flex-col gap-1.5">
+      <label class="text-sm font-medium" for="docker-image">Docker image</label>
+      <Input
+        id="docker-image"
+        bind:value={dockerImage}
+        placeholder="nginx:alpine"
+      />
+    </div>
+
+    <div class="flex flex-col gap-1.5">
+      <label class="text-sm font-medium" for="container-port"
+        >Container port</label
+      >
+      <Input
+        id="container-port"
+        type="number"
+        bind:value={containerPort}
+        placeholder="80"
+      />
+    </div>
+
+    <fieldset class="border border-border rounded-lg p-4 flex flex-col gap-2">
+      <legend class="text-sm font-medium px-1"
+        >Environment variables (optional)</legend
+      >
+
+      <div class="flex gap-2 items-end">
+        <div class="flex flex-col gap-1 flex-1">
+          <Input bind:value={envKey} placeholder="KEY" />
         </div>
-      {/if}
-
-      {#if deployError && !deployLogs.length}
-        <div class="result error">
-          <h3>Error</h3>
-          <pre>{deployError}</pre>
+        <div class="flex flex-col gap-1 flex-1">
+          <Input bind:value={envVal} placeholder="value" />
         </div>
-      {/if}
+        <Button type="button" variant="ghost" onclick={addEnvVar}>Add</Button>
+      </div>
 
-      {#if deployResult && !deployLogs.length}
-        <div class="result success">
-          <h3>Deploy started</h3>
-          <pre>{JSON.stringify(deployResult, null, 2)}</pre>
+      {#each Object.entries(envVars) as [key, val] (key)}
+        <div class="flex gap-2 items-center">
+          <code class="text-sm text-muted-foreground">{key}</code>
+          <span class="text-muted-foreground">=</span>
+          <code class="text-sm text-muted-foreground">{val}</code>
+          <Button
+            type="button"
+            variant="ghost"
+            size="xs"
+            onclick={() => removeEnvVar(key)}>✕</Button
+          >
         </div>
-      {/if}
-    </section>
+      {/each}
+    </fieldset>
 
-    <hr />
+    <Button type="submit" disabled={deploying || servers.length === 0}>
+      {deploying ? "Deploying…" : "Deploy"}
+    </Button>
+  </form>
 
-    <section>
-      <h2>Session</h2>
-      <pre>{JSON.stringify(data.session, null, 2)}</pre>
-    </section>
-  </main>
+  {#if deployLogs.length > 0}
+    <div
+      class="bg-[#1e1e2e] text-[#cdd6f4] font-mono text-xs leading-relaxed p-3 rounded-lg max-h-96 overflow-y-auto"
+      bind:this={logContainer}
+    >
+      {#each deployLogs as log (log.timestamp + log.message)}
+        <div
+          class="flex gap-2 whitespace-pre-wrap break-all"
+          class:text-[#f38ba8]={log.stream === "stderr"}
+        >
+          <span class="shrink-0 w-10 text-[#6c7086] select-none">
+            {log.stream === "stderr" ? "ERR" : "OUT"}
+          </span>
+          <span class="flex-1">{log.message}</span>
+        </div>
+      {/each}
+    </div>
+  {/if}
+
+  {#if deployStatus}
+    <div
+      class={cn(
+        "p-4 rounded-lg border",
+        deployStatus === "healthy"
+          ? "bg-green-950/50 border-green-800"
+          : "bg-red-950/50 border-red-800",
+      )}
+    >
+      <h3 class="font-semibold text-sm">
+        {deployStatus === "healthy" ? "Deploy succeeded" : "Deploy failed"}
+      </h3>
+    </div>
+  {/if}
+
+  {#if deployError && !deployLogs.length}
+    <div class="bg-red-950/50 border-red-800 p-4 rounded-lg border">
+      <h3 class="font-semibold text-sm">Error</h3>
+      <pre class="mt-2 text-xs text-muted-foreground">{deployError}</pre>
+    </div>
+  {/if}
+
+  {#if deployResult && !deployLogs.length}
+    <div class="bg-green-950/50 border-green-800 p-4 rounded-lg border">
+      <h3 class="font-semibold text-sm">Deploy started</h3>
+      <pre class="mt-2 text-xs text-muted-foreground">{JSON.stringify(
+          deployResult,
+          null,
+          2,
+        )}</pre>
+    </div>
+  {/if}
 </div>
-
-<style>
-  .page {
-    font-family: system-ui, -apple-system, sans-serif;
-    max-width: 720px;
-    margin: 0 auto;
-    padding: 2rem 1rem;
-  }
-
-  header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 2rem;
-  }
-
-  h1 {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin: 0;
-  }
-
-  h2 {
-    font-size: 1rem;
-    font-weight: 600;
-    margin: 0 0 0.75rem;
-  }
-
-  h3 {
-    font-size: 0.9rem;
-    font-weight: 600;
-    margin: 0 0 0.5rem;
-  }
-
-  .hint {
-    font-size: 0.8125rem;
-    color: #666;
-    margin: 0 0 1rem;
-  }
-
-  form {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-
-  label {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    font-size: 0.8125rem;
-    font-weight: 500;
-  }
-
-  input {
-    padding: 0.375rem 0.5rem;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 0.875rem;
-  }
-
-  fieldset {
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    padding: 0.75rem;
-  }
-
-  legend {
-    font-size: 0.8125rem;
-    font-weight: 500;
-    padding: 0 0.25rem;
-  }
-
-  .env-row {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-    margin-bottom: 0.375rem;
-  }
-
-  .env-row input {
-    flex: 1;
-  }
-
-  button {
-    padding: 0.375rem 0.75rem;
-    background: #2563eb;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    font-size: 0.875rem;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-
-  button:hover {
-    background: #1d4ed8;
-  }
-
-  button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
-  button[type="button"] {
-    background: #6b7280;
-  }
-
-  button[type="button"]:hover {
-    background: #4b5563;
-  }
-
-  .logs {
-    margin-top: 1rem;
-    background: #1e1e2e;
-    color: #cdd6f4;
-    font-family: "JetBrains Mono", "Fira Code", monospace;
-    font-size: 0.75rem;
-    line-height: 1.5;
-    padding: 0.75rem;
-    border-radius: 4px;
-    max-height: 400px;
-    overflow-y: auto;
-  }
-
-  .log-line {
-    display: flex;
-    gap: 0.5rem;
-    white-space: pre-wrap;
-    word-break: break-all;
-  }
-
-  .log-line.stderr {
-    color: #f38ba8;
-  }
-
-  .log-stream {
-    flex-shrink: 0;
-    width: 2.5rem;
-    color: #6c7086;
-    user-select: none;
-  }
-
-  .log-msg {
-    flex: 1;
-  }
-
-  .result {
-    margin-top: 1rem;
-    padding: 0.75rem;
-    border-radius: 4px;
-  }
-
-  .result.error {
-    background: #fef2f2;
-    border: 1px solid #fecaca;
-  }
-
-  .result.success {
-    background: #f0fdf4;
-    border: 1px solid #bbf7d0;
-  }
-
-  pre {
-    background: #f5f5f5;
-    padding: 1rem;
-    border-radius: 4px;
-    overflow-x: auto;
-    font-size: 0.8125rem;
-    line-height: 1.5;
-    margin: 0;
-  }
-
-  hr {
-    border: none;
-    border-top: 1px solid #eee;
-    margin: 2rem 0;
-  }
-</style>
