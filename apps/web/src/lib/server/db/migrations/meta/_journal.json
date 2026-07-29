@@ -5,29 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1783987945363,
-      "tag": "0000_glorious_slyde",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1784052894036,
-      "tag": "0001_rapid_william_stryker",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1784237579311,
-      "tag": "0002_lumpy_rattler",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1785264642392,
-      "tag": "0003_funny_charles_xavier",
+      "when": 1785347246177,
+      "tag": "0000_stale_baron_zemo",
       "breakpoints": true
     }
   ]
