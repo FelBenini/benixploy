@@ -1,18 +1,24 @@
 <script lang="ts">
   import * as Sidebar from "$lib/components/ui/sidebar";
+  import UserMenu from "$lib/components/user-menu.svelte";
   import LayoutDashboard from "@lucide/svelte/icons/layout-dashboard";
   import Server from "@lucide/svelte/icons/server";
   import Settings from "@lucide/svelte/icons/settings";
-  import LogOut from "@lucide/svelte/icons/log-out";
   import Box from "@lucide/svelte/icons/box";
   import { page } from "$app/state";
 
-  let { children } = $props();
+  let { data, children } = $props();
 
   const sidebar = Sidebar.useSidebar();
 
   function handleNav() {
     sidebar.setOpenMobile(false);
+  }
+
+  function handleLogout() {
+    fetch("/api/auth/logout", { method: "POST" }).finally(() => {
+      window.location.href = "/login";
+    });
   }
 
   const items = [
@@ -64,10 +70,11 @@
                   tooltipContent={item.title}
                   variant="ghost"
                   size="lg"
+                  class="data-active:outline-solid outline-border data-active:bg-[linear-gradient(var(--border),transparent)]"
                   isActive={page.url.pathname === item.url}
                 >
                   {#snippet child({ props })}
-                  <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+                    <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
                     <a href={item.url} {...props} onclick={() => handleNav()}>
                       <item.icon />
                       <span>{item.title}</span>
@@ -82,23 +89,7 @@
     </Sidebar.Content>
 
     <Sidebar.Footer>
-      <Sidebar.Menu class="gap-1">
-        <Sidebar.MenuItem>
-          <Sidebar.MenuButton
-            tooltipContent="Sign out"
-            variant="ghost"
-            size="lg"
-            onclick={() => {
-              fetch("/api/auth/logout", { method: "POST" }).finally(() => {
-                window.location.href = "/login";
-              });
-            }}
-          >
-            <LogOut />
-            <span>Sign out</span>
-          </Sidebar.MenuButton>
-        </Sidebar.MenuItem>
-      </Sidebar.Menu>
+      <UserMenu user={data.user} onLogout={handleLogout} />
     </Sidebar.Footer>
   </Sidebar.Root>
 

@@ -3,6 +3,8 @@ import { z } from "zod";
 export const UserSchema = z.object({
   id: z.string().min(1).describe("Unique user identifier (ULID)"),
   email: z.string().email(),
+  username: z.string().optional(),
+  avatarUrl: z.string().url().optional(),
   createdAt: z.string().datetime(),
 });
 

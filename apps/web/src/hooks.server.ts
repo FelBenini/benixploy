@@ -27,6 +27,7 @@ export const handle: Handle = async ({ event, resolve }) => {
     const session = await app.auth.validateSessionToken(token);
     if (session) {
       event.locals.session = session;
+      event.locals.user = await app.repo.users.getByUserId(session.userId);
       const membership = await app.repo.memberships.findByUserId(
         session.userId,
       );

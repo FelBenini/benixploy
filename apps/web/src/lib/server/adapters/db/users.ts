@@ -8,6 +8,8 @@ function toDomain(row: typeof users.$inferSelect): User {
   return {
     id: row.id,
     email: row.email,
+    username: row.username ?? undefined,
+    avatarUrl: row.avatarUrl ?? undefined,
     createdAt: row.createdAt.toISOString(),
   };
 }
@@ -26,6 +28,8 @@ export class DrizzleUserRepository implements UserRepository {
       .values({
         id: user.id,
         email: user.email,
+        username: user.username ?? null,
+        avatarUrl: user.avatarUrl ?? null,
         passwordHash: passwordHash ?? "",
         createdAt: new Date(user.createdAt),
         updatedAt: new Date(),
@@ -39,6 +43,15 @@ export class DrizzleUserRepository implements UserRepository {
       .select()
       .from(users)
       .where(eq(users.id, id))
+      .limit(1);
+    return row ? toDomain(row) : null;
+  }
+
+  async getByUserId(userId: string): Promise<User | null> {
+    const [row] = await this.db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId))
       .limit(1);
     return row ? toDomain(row) : null;
   }

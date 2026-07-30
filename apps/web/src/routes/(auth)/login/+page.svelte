@@ -8,6 +8,7 @@
 
   let email = $state("");
   let password = $state("");
+  let username = $state("");
   let error = $state("");
   let loading = $state(false);
 
@@ -19,10 +20,15 @@
     const endpoint = data.configured ? "/api/auth/login" : "/api/auth/setup";
 
     try {
+      const body: Record<string, string> = { email, password };
+      if (!data.configured && username.trim()) {
+        body.username = username.trim();
+      }
+
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify(body),
       });
 
       if (!res.ok) {
@@ -59,6 +65,19 @@
     {/if}
 
     <form onsubmit={handleSubmit} class="flex flex-col gap-4">
+      {#if !data.configured}
+        <div class="flex flex-col gap-1.5">
+          <label for="username" class="text-foreground text-sm font-medium">Username</label>
+          <Input
+            id="username"
+            type="text"
+            bind:value={username}
+            autocomplete="username"
+            placeholder="Your username"
+          />
+        </div>
+      {/if}
+
       <div class="flex flex-col gap-1.5">
         <label for="email" class="text-foreground text-sm font-medium">Email</label>
         <Input

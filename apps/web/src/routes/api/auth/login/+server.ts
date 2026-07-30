@@ -82,6 +82,8 @@ export const POST: RequestHandler = async ({
     user: {
       id: result.user.id,
       email: result.user.email,
+      username: result.user.username,
+      avatarUrl: result.user.avatarUrl,
     },
   });
 };

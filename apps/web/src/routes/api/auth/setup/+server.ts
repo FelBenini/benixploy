@@ -12,6 +12,7 @@ import {
 const SetupSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
+  username: z.string().min(1).max(32).optional(),
 });
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
@@ -30,7 +31,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
     );
   }
 
-  const { password } = parsed.data;
+  const { password, username } = parsed.data;
 
   const email = parsed.data.email.toLowerCase();
   try {
@@ -60,6 +61,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
         {
           id: userId,
           email,
+          username,
           createdAt: now.toISOString(),
         },
         passwordHash,
@@ -76,7 +78,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
       return {
         session,
-        user: { id: userId, email },
+        user: { id: userId, email, username },
       };
     });
 

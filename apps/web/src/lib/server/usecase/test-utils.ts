@@ -218,6 +218,13 @@ export class InMemoryUserRepo implements UserRepository {
     }
     return null;
   }
+  async getByUserId(userId: string): Promise<User | null> {
+    for (const m of this.data.values()) {
+      const u = m.get(userId);
+      if (u) return u;
+    }
+    return null;
+  }
   async getPasswordHashByEmail(
     _email: string,
   ): Promise<{ user: User; passwordHash: string } | null> {

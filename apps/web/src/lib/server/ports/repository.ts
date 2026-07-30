@@ -77,6 +77,7 @@ export interface UserRepository {
     passwordHash?: string,
   ): Promise<User>;
   get(orgId: string, id: string): Promise<User | null>;
+  getByUserId(userId: string): Promise<User | null>;
   getByEmail(orgId: string, email: string): Promise<User | null>;
   getPasswordHashByEmail(
     email: string,
