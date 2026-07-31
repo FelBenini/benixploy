@@ -21,7 +21,10 @@ export const POST: RequestHandler = async ({ request, cookies, locals }) => {
   const membershipOrgIds = memberships.map((m) => m.orgId);
 
   if (!membershipOrgIds.includes(orgId)) {
-    return json({ error: "Not a member of this organization" }, { status: 403 });
+    return json(
+      { error: "Not a member of this organization" },
+      { status: 403 },
+    );
   }
 
   cookies.set(ACTIVE_ORG_COOKIE, orgId, {

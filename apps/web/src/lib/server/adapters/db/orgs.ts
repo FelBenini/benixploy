@@ -42,10 +42,7 @@ export class DrizzleOrgRepository implements OrgRepository {
 
   async listByIds(ids: string[]): Promise<Org[]> {
     if (ids.length === 0) return [];
-    const rows = await this.db
-      .select()
-      .from(orgs)
-      .where(inArray(orgs.id, ids));
+    const rows = await this.db.select().from(orgs).where(inArray(orgs.id, ids));
     return rows.map(toDomain);
   }
 }

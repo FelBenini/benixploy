@@ -37,10 +37,7 @@ export const handle: Handle = async ({ event, resolve }) => {
       const membershipOrgIds = memberships.map((m) => m.orgId);
 
       const activeOrgId = event.cookies.get(ACTIVE_ORG_COOKIE);
-      if (
-        activeOrgId &&
-        membershipOrgIds.includes(activeOrgId)
-      ) {
+      if (activeOrgId && membershipOrgIds.includes(activeOrgId)) {
         event.locals.orgId = activeOrgId;
       } else if (membershipOrgIds.length > 0) {
         event.locals.orgId = membershipOrgIds[0];

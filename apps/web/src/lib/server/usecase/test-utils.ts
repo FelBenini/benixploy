@@ -269,7 +269,9 @@ export class InMemoryOrgRepo implements OrgRepository {
     return this.data.get(id) ?? null;
   }
   async listByIds(ids: string[]): Promise<Org[]> {
-    return ids.map((id) => this.data.get(id)).filter((o): o is Org => o !== undefined);
+    return ids
+      .map((id) => this.data.get(id))
+      .filter((o): o is Org => o !== undefined);
   }
 }
 

@@ -3,13 +3,11 @@
   import * as Dialog from "$lib/components/ui/dialog";
   import { Input } from "$lib/components/ui/input";
   import { Button } from "$lib/components/ui/button";
-  import Building from "@lucide/svelte/icons/building";
   import Check from "@lucide/svelte/icons/check";
   import ChevronDown from "@lucide/svelte/icons/chevron-down";
   import Plus from "@lucide/svelte/icons/plus";
   import Loader from "@lucide/svelte/icons/loader";
   import * as Avatar from "./ui/avatar";
-  import AvatarFallback from "./ui/avatar/avatar-fallback.svelte";
 
   type Org = {
     id: string;
