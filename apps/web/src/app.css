@@ -179,4 +179,70 @@
       opacity: 0;
     }
   }
+
+  [data-slot="dialog-content"] {
+    animation-duration: 150ms;
+    animation-fill-mode: forwards;
+  }
+
+  [data-slot="dialog-content"][data-state="open"] {
+    animation-name: dialog-in;
+  }
+
+  [data-slot="dialog-content"][data-state="closed"] {
+    animation-name: dialog-out;
+  }
+
+  [data-slot="dialog-overlay"] {
+    animation-duration: 150ms;
+    animation-fill-mode: forwards;
+  }
+
+  [data-slot="dialog-overlay"][data-state="open"] {
+    animation-name: dialog-overlay-in;
+  }
+
+  [data-slot="dialog-overlay"][data-state="closed"] {
+    animation-name: dialog-overlay-out;
+  }
+
+  @keyframes dialog-in {
+    from {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+  }
+
+  @keyframes dialog-out {
+    from {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0.96);
+    }
+  }
+
+  @keyframes dialog-overlay-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes dialog-overlay-out {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
 }

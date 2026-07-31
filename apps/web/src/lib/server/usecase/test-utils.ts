@@ -265,16 +265,28 @@ export class InMemoryOrgRepo implements OrgRepository {
     this.data.set(org.id, org);
     return org;
   }
+  async getById(id: string): Promise<Org | null> {
+    return this.data.get(id) ?? null;
+  }
+  async listByIds(ids: string[]): Promise<Org[]> {
+    return ids.map((id) => this.data.get(id)).filter((o): o is Org => o !== undefined);
+  }
 }
 
 export class InMemoryMembershipRepo implements OrgMembershipRepository {
-  private data = new Map<string, OrgMembership>();
+  private data = new Map<string, OrgMembership[]>();
   async create(_db: unknown, m: OrgMembership): Promise<OrgMembership> {
-    this.data.set(m.userId, m);
+    const existing = this.data.get(m.userId) ?? [];
+    existing.push(m);
+    this.data.set(m.userId, existing);
     return m;
   }
   async findByUserId(userId: string): Promise<OrgMembership | null> {
-    return this.data.get(userId) ?? null;
+    const memberships = this.data.get(userId);
+    return memberships?.[0] ?? null;
+  }
+  async findByUserIdAll(userId: string): Promise<OrgMembership[]> {
+    return this.data.get(userId) ?? [];
   }
 }
 

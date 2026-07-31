@@ -1,13 +1,9 @@
 <script lang="ts">
   import { AlertDialog as AlertDialogPrimitive } from "bits-ui";
-  import {
-    cn,
-    type WithoutChild,
-    type WithoutChildrenOrChild,
-  } from "$lib/utils";
+  import { cn, type WithoutChildrenOrChild } from "$lib/utils";
   import AlertDialogOverlay from "./alert-dialog-overlay.svelte";
   import AlertDialogPortal from "./alert-dialog-portal.svelte";
-  import type { ComponentProps } from "svelte";
+  import type { ComponentProps, Snippet } from "svelte";
 
   let {
     ref = $bindable(null),
@@ -15,12 +11,14 @@
     size = "default",
     portalProps,
     interactOutsideBehavior = "close",
+    children,
     ...restProps
-  }: WithoutChild<AlertDialogPrimitive.ContentProps> & {
+  }: Omit<AlertDialogPrimitive.ContentProps, "child"> & {
     size?: "default" | "sm";
     portalProps?: WithoutChildrenOrChild<
       ComponentProps<typeof AlertDialogPortal>
     >;
+    children?: Snippet;
   } = $props();
 </script>
 
@@ -36,5 +34,7 @@
       className,
     )}
     {...restProps}
-  />
+  >
+    {@render children?.()}
+  </AlertDialogPrimitive.Content>
 </AlertDialogPortal>

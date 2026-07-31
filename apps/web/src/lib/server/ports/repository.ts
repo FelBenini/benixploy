@@ -86,11 +86,14 @@ export interface UserRepository {
 
 export interface OrgRepository {
   create(db: DbExecutor, org: Org): Promise<Org>;
+  getById(id: string): Promise<Org | null>;
+  listByIds(ids: string[]): Promise<Org[]>;
 }
 
 export interface OrgMembershipRepository {
   create(db: DbExecutor, membership: OrgMembership): Promise<OrgMembership>;
   findByUserId(userId: string): Promise<OrgMembership | null>;
+  findByUserIdAll(userId: string): Promise<OrgMembership[]>;
 }
 
 export interface SessionRepository {

@@ -1,10 +1,10 @@
 <script lang="ts">
   import * as Sidebar from "$lib/components/ui/sidebar";
   import UserMenu from "$lib/components/user-menu.svelte";
+  import TenantSwitcher from "$lib/components/tenant-switcher.svelte";
   import LayoutDashboard from "@lucide/svelte/icons/layout-dashboard";
   import Server from "@lucide/svelte/icons/server";
   import Settings from "@lucide/svelte/icons/settings";
-  import Box from "@lucide/svelte/icons/box";
   import { page } from "$app/state";
 
   let { data, children } = $props();
@@ -43,18 +43,7 @@
 <Sidebar.Provider>
   <Sidebar.Root collapsible="icon">
     <Sidebar.Header>
-      <Sidebar.Menu class="gap-1">
-        <Sidebar.MenuItem>
-          <Sidebar.MenuButton
-            tooltipContent="Benisploy"
-            variant="ghost"
-            size="lg"
-          >
-            <Box />
-            <span class="font-semibold">Benisploy</span>
-          </Sidebar.MenuButton>
-        </Sidebar.MenuItem>
-      </Sidebar.Menu>
+      <TenantSwitcher activeOrg={data.activeOrg} userOrgs={data.userOrgs} />
     </Sidebar.Header>
 
     <Sidebar.Separator />
@@ -70,7 +59,7 @@
                   tooltipContent={item.title}
                   variant="ghost"
                   size="lg"
-                  class="data-active:outline-solid outline-border data-active:bg-[linear-gradient(var(--border),transparent)]"
+                  class="text-foreground/80 data-active:outline-solid data-active:outline-1 outline-border data-active:bg-[linear-gradient(var(--border),transparent)] rounded-[2px]"
                   isActive={page.url.pathname === item.url}
                 >
                   {#snippet child({ props })}
@@ -97,7 +86,7 @@
     <header
       class="flex h-16 shrink-0 items-center gap-2 border-b border-border"
     >
-      <Sidebar.Trigger class="mr-2 text-xl px-8 h-full" />
+      <Sidebar.Trigger class="flex md:hidden mr-2 text-xl px-8 h-full" />
       <span class="text-foreground text-lg font-bold">Dashboard</span>
     </header>
     <div class="flex flex-1 flex-col gap-6 p-6">

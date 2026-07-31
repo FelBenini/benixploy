@@ -1,3 +1,4 @@
+import { eq, inArray } from "drizzle-orm";
 import type { DbExecutor, OrgRepository } from "../../ports/repository";
 import type { Org } from "../../domain/org";
 import type { DrizzleDB } from "./drizzle-repository";
@@ -28,5 +29,23 @@ export class DrizzleOrgRepository implements OrgRepository {
       })
       .returning() as Promise<(typeof orgs.$inferSelect)[]>);
     return toDomain(row);
+  }
+
+  async getById(id: string): Promise<Org | null> {
+    const [row] = await this.db
+      .select()
+      .from(orgs)
+      .where(eq(orgs.id, id))
+      .limit(1);
+    return row ? toDomain(row) : null;
+  }
+
+  async listByIds(ids: string[]): Promise<Org[]> {
+    if (ids.length === 0) return [];
+    const rows = await this.db
+      .select()
+      .from(orgs)
+      .where(inArray(orgs.id, ids));
+    return rows.map(toDomain);
   }
 }

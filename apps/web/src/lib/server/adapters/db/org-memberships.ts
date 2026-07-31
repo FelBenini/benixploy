@@ -43,4 +43,12 @@ export class DrizzleOrgMembershipRepository implements OrgMembershipRepository {
       .limit(1);
     return row ? toDomain(row) : null;
   }
+
+  async findByUserIdAll(userId: string): Promise<OrgMembership[]> {
+    const rows = await this.db
+      .select()
+      .from(orgMemberships)
+      .where(eq(orgMemberships.userId, userId));
+    return rows.map(toDomain);
+  }
 }

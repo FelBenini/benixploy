@@ -107,23 +107,31 @@
   </DropdownMenu.Root>
 
   <AlertDialog.Content
-    class="bg-background/30 backdrop-blur-lg bg-[radial-gradient(circle_at_bottom_right,_#ef444450_0%,_transparent_50%)]"
+    class="bg-background/30 backdrop-blur-lg bg-[radial-gradient(circle_at_top_left,_#EF0A8610_0%,_transparent_50%),radial-gradient(circle_at_bottom_right,_#ef444450_0%,_transparent_50%)]"
   >
     <AlertDialog.Header class="flex-col jusify-between items-center gap-4">
       <div
-        class="shadow-md mx-auto h-12 w-12 flex jusify-between items-center border-border border rounded-md bg-gradient-to-br from-accent to-background"
+        class="mx-auto rounded-md bg-gradient-to-br from-white/30 via-accent to-border p-px shadow-md"
       >
-        <LogOutIcon class="mx-auto" />
+        <div
+          class="flex h-12 w-12 items-center justify-center rounded-[calc(theme(borderRadius.md)-1px)] bg-gradient-to-br from-accent to-background"
+        >
+          <LogOutIcon class="text-foreground/80" />
+        </div>
       </div>
       <AlertDialog.Description class="text-center">
         Are you sure you want to sign out? You will be redirected to the login
         page.
       </AlertDialog.Description>
     </AlertDialog.Header>
-    <AlertDialog.Footer>
-      <AlertDialog.Cancel class="w-[49%]">Cancel</AlertDialog.Cancel>
+    <AlertDialog.Footer
+      class="flex-row h-16 items-center justify-center gap-1 p-2"
+    >
+      <AlertDialog.Cancel class="w-[49%] rounded-r-[2px] h-full border-border"
+        >Cancel</AlertDialog.Cancel
+      >
       <AlertDialog.Action
-        class="w-[49%]"
+        class="w-[49%] h-full rounded-l-[2px] border-destructive/30"
         onclick={handleConfirmLogout}
         variant="destructive">Sign out</AlertDialog.Action
       >
