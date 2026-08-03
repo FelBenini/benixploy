@@ -111,9 +111,10 @@
 
     <Wizard.Content>
       {#if step === 0}
-        <p class="text-muted-foreground text-sm text-center mt-[10%]">
-          Benisploy helps you deploy and manage applications across your servers
-          with ease. The first user you create will be the system administrator.
+        <p class="text-muted-foreground text-sm text-center mt-[20%]">
+          <em class="font-bold">Benisploy</em> helps you deploy and manage applications
+          across your servers with ease. The first user you create will be the system
+          administrator.
         </p>
       {:else if step === 1}
         <Field.FieldGroup>
