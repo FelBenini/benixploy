@@ -34,7 +34,7 @@
 
 <div
   class={cn(
-    "flex flex-row h-16 items-center justify-center gap-1 p-2 border-t border-border rounded-b-xl bg-muted/30",
+    "flex flex-row h-18 items-center justify-center gap-1 p-2 py-3 border-t border-border rounded-b bg-muted/30",
     className,
   )}
 >
@@ -42,7 +42,7 @@
     <Button
       type="button"
       variant="ghost"
-      class="w-[49%] rounded-r-[2px] h-full border-border"
+      class="w-[49%] rounded-r-[2px] rounded-sm h-full border-border"
       disabled={ctx.isFirst}
       onclick={() => ctx.back()}
     >
@@ -51,8 +51,8 @@
   {/if}
   <Button
     class={cn(
-      "h-full rounded-l-[2px]",
-      hideBack ? "w-full rounded-lg" : "w-[49%]",
+      "h-full rounded-l-[2px] rounded-sm",
+      hideBack ? "w-full rounded-sm" : "w-[49%]",
     )}
     type={onnext ? "button" : "submit"}
     disabled={nextDisabled || loading}

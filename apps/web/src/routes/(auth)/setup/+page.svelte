@@ -105,113 +105,120 @@
   class="relative flex min-h-svh items-center w-full justify-center overflow-hidden bg-[linear-gradient(to_bottom,var(--background)_50%,transparent),linear-gradient(to_right,#EF0A8620,#ff690020)]"
 >
   <BackgroundGrid />
-  <Wizard.Root {steps} bind:step class="w-full max-w-md mx-4">
-    <Wizard.Header />
-    <Wizard.Steps />
-
-    <Wizard.Content>
-      {#if step === 0}
-        <p class="text-muted-foreground text-sm text-center mt-[20%]">
-          <em class="font-bold">Benisploy</em> helps you deploy and manage applications
-          across your servers with ease. The first user you create will be the system
-          administrator.
-        </p>
-      {:else if step === 1}
-        <Field.FieldGroup>
-          <Field.Field>
-            <Field.FieldLabel for="setup-username">Username</Field.FieldLabel>
-            <Input
-              id="setup-username"
-              type="text"
-              bind:value={username}
-              autocomplete="username"
-              placeholder="Your username"
-              required
-            />
-            <Field.FieldDescription>
-              Choose a unique username for your admin account.
-            </Field.FieldDescription>
-          </Field.Field>
-        </Field.FieldGroup>
-      {:else if step === 2}
-        <Field.FieldGroup>
-          <Field.Field>
-            <Field.FieldLabel for="setup-email">Email</Field.FieldLabel>
-            <Input
-              id="setup-email"
-              type="email"
-              bind:value={email}
-              autocomplete="email"
-              placeholder="you@example.com"
-              required
-            />
-          </Field.Field>
-
-          <Field.Field>
-            <Field.FieldLabel for="setup-password">Password</Field.FieldLabel>
-            <Input
-              id="setup-password"
-              type="password"
-              bind:value={password}
-              autocomplete="new-password"
-              placeholder="At least 8 characters"
-              required
-              minlength={8}
-            />
-          </Field.Field>
-
-          <Field.Field>
-            <Field.FieldLabel for="setup-confirm">
-              Confirm password
-            </Field.FieldLabel>
-            <Input
-              id="setup-confirm"
-              type="password"
-              bind:value={confirmPassword}
-              autocomplete="new-password"
-              placeholder="Re-enter your password"
-              required
-              minlength={8}
-            />
-            {#if confirmPassword && confirmPassword !== password}
-              <Field.FieldDescription class="text-destructive">
-                Passwords do not match.
-              </Field.FieldDescription>
-            {/if}
-          </Field.Field>
-        </Field.FieldGroup>
-      {:else if step === 3}
-        <div class="flex flex-col gap-3 py-4">
-          <div class="flex flex-col gap-0.5">
-            <span class="text-xs text-muted-foreground">Username</span>
-            <span class="text-sm font-medium">{username}</span>
-          </div>
-          <div class="flex flex-col gap-0.5">
-            <span class="text-xs text-muted-foreground">Email</span>
-            <span class="text-sm font-medium">{email}</span>
-          </div>
-          <div class="flex flex-col gap-0.5">
-            <span class="text-xs text-muted-foreground">Password</span>
-            <span class="text-sm font-medium"
-              >{"\u2022".repeat(password.length)}</span
-            >
-          </div>
-          <p class="text-xs text-muted-foreground mt-1">
-            A default organization will be created for you.
-          </p>
-        </div>
-      {/if}
-
-      {#if error}
-        <p class="mt-4 text-sm text-destructive">{error}</p>
-      {/if}
-    </Wizard.Content>
-
-    <Wizard.Footer
-      nextLabel={nextLabelForStep(step)}
-      loading={step === 3 ? loading : false}
-      nextDisabled={!stepValid()}
-      onnext={step === 3 ? handleSetup : undefined}
+  <div class="flex-col justify-center items-center max-w-md w-full mx-4">
+    <img
+      src="/logo.svg"
+      alt="benisploy"
+      class="mx-auto mb-[-15.5%] md:mb-[-12.5%]"
     />
-  </Wizard.Root>
+    <Wizard.Root {steps} bind:step class="w-full max-w-md rounded mx-auto z-99">
+      <Wizard.Header />
+      <Wizard.Steps />
+
+      <Wizard.Content>
+        {#if step === 0}
+          <p class="text-muted-foreground text-sm text-center mt-[20%]">
+            <em class="font-bold">Benisploy</em> helps you deploy and manage applications
+            across your servers with ease. The first user you create will be the system
+            administrator.
+          </p>
+        {:else if step === 1}
+          <Field.FieldGroup>
+            <Field.Field>
+              <Field.FieldLabel for="setup-username">Username</Field.FieldLabel>
+              <Input
+                id="setup-username"
+                type="text"
+                bind:value={username}
+                autocomplete="username"
+                placeholder="Your username"
+                required
+              />
+              <Field.FieldDescription>
+                Choose a unique username for your admin account.
+              </Field.FieldDescription>
+            </Field.Field>
+          </Field.FieldGroup>
+        {:else if step === 2}
+          <Field.FieldGroup>
+            <Field.Field>
+              <Field.FieldLabel for="setup-email">Email</Field.FieldLabel>
+              <Input
+                id="setup-email"
+                type="email"
+                bind:value={email}
+                autocomplete="email"
+                placeholder="you@example.com"
+                required
+              />
+            </Field.Field>
+
+            <Field.Field>
+              <Field.FieldLabel for="setup-password">Password</Field.FieldLabel>
+              <Input
+                id="setup-password"
+                type="password"
+                bind:value={password}
+                autocomplete="new-password"
+                placeholder="At least 8 characters"
+                required
+                minlength={8}
+              />
+            </Field.Field>
+
+            <Field.Field>
+              <Field.FieldLabel for="setup-confirm">
+                Confirm password
+              </Field.FieldLabel>
+              <Input
+                id="setup-confirm"
+                type="password"
+                bind:value={confirmPassword}
+                autocomplete="new-password"
+                placeholder="Re-enter your password"
+                required
+                minlength={8}
+              />
+              {#if confirmPassword && confirmPassword !== password}
+                <Field.FieldDescription class="text-destructive">
+                  Passwords do not match.
+                </Field.FieldDescription>
+              {/if}
+            </Field.Field>
+          </Field.FieldGroup>
+        {:else if step === 3}
+          <div class="flex flex-col gap-3 py-4">
+            <div class="flex flex-col gap-0.5">
+              <span class="text-xs text-muted-foreground">Username</span>
+              <span class="text-sm font-medium">{username}</span>
+            </div>
+            <div class="flex flex-col gap-0.5">
+              <span class="text-xs text-muted-foreground">Email</span>
+              <span class="text-sm font-medium">{email}</span>
+            </div>
+            <div class="flex flex-col gap-0.5">
+              <span class="text-xs text-muted-foreground">Password</span>
+              <span class="text-sm font-medium"
+                >{"\u2022".repeat(password.length)}</span
+              >
+            </div>
+            <p class="text-xs text-muted-foreground mt-1">
+              A default organization will be created for you.
+            </p>
+          </div>
+        {/if}
+
+        {#if error}
+          <p class="mt-4 text-sm text-destructive">{error}</p>
+        {/if}
+      </Wizard.Content>
+
+      <Wizard.Footer
+        nextLabel={nextLabelForStep(step)}
+        loading={step === 3 ? loading : false}
+        nextDisabled={!stepValid()}
+        onnext={step === 3 ? handleSetup : undefined}
+      />
+    </Wizard.Root>
+  </div>
 </div>

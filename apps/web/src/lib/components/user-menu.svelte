@@ -125,7 +125,7 @@
       </AlertDialog.Description>
     </AlertDialog.Header>
     <AlertDialog.Footer
-      class="flex-row h-16 items-center justify-center gap-1 p-2"
+      class="flex-row h-16 items-center justify-between gap-1 p-2"
     >
       <AlertDialog.Cancel class="w-[49%] rounded-r-[2px] h-full border-border"
         >Cancel</AlertDialog.Cancel

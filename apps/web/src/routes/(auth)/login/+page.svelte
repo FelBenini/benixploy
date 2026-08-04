@@ -43,12 +43,12 @@
 </svelte:head>
 
 <div
-  class="relative flex min-h-svh w-full items-center justify-center overflow-hidden bg-[linear-gradient(to_bottom,var(--background)_50%,transparent),linear-gradient(to_right,#EF0A8620,#ff690020)]"
+  class="flex flex-col h-screen w-full items-center justify-center overflow-hidden bg-[linear-gradient(to_bottom,var(--background)_50%,transparent),linear-gradient(to_right,#EF0A8620,#ff690020)]"
 >
   <BackgroundGrid />
-
+  <img src="/logo.svg" alt="benisploy" class="mx-auto mb-[-4rem]" />
   <div
-    class="relative z-10 mx-4 w-full max-w-md rounded-md bg-background/10 shadow-lg ring-1 ring-foreground/10 backdrop-blur-sm bg-[radial-gradient(circle_at_top_left,_#EF0A8610_0%,_transparent_50%),radial-gradient(circle_at_bottom_right,_#f0fdfa10_0%,_transparent_50%)]"
+    class="z-10 mx-auto w-[calc(100%-2rem)] max-w-md rounded-md bg-background/10 shadow-lg ring-1 ring-foreground/10 backdrop-blur-sm bg-[radial-gradient(circle_at_top_left,_#EF0A8610_0%,_transparent_50%),radial-gradient(circle_at_bottom_right,_#f0fdfa10_0%,_transparent_50%)]"
   >
     <div class="flex flex-col items-center gap-4 p-6 pb-0">
       <div
@@ -60,7 +60,6 @@
           <LogIn class="text-foreground/80" />
         </div>
       </div>
-      <h1 class="text-foreground text-xl font-semibold">Benisploy</h1>
       <p class="text-muted-foreground text-center text-sm">
         Sign in to your account
       </p>
@@ -81,7 +80,6 @@
             required
             autocomplete="email"
             placeholder="you@example.com"
-            class="h-12 text-lg"
           />
         </Field.Field>
 
@@ -94,7 +92,6 @@
             required
             autocomplete="current-password"
             placeholder="Enter your password"
-            class="h-12 text-lg"
           />
         </Field.Field>
       </Field.FieldGroup>
@@ -103,7 +100,7 @@
         type="submit"
         size="lg"
         disabled={loading}
-        class="mt-2 w-full text-lg h-12 rounded"
+        class="mt-4 w-full rounded py-5"
       >
         {#if loading}
           Please wait…

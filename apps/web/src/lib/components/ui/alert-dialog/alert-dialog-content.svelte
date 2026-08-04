@@ -30,7 +30,7 @@
     data-size={size}
     {interactOutsideBehavior}
     class={cn(
-      "gap-4 rounded-xl bg-popover p-4 text-popover-foreground ring-1 ring-foreground/10 data-[size=default]:max-w-xs data-[size=sm]:max-w-xs data-[size=default]:sm:max-w-sm group/alert-dialog-content fixed top-1/2 left-1/2 z-50 grid w-full -translate-x-1 -translate-y-1 outline-none",
+      "gap-4 rounded-md bg-popover p-4 text-popover-foreground ring-1 ring-foreground/10 data-[size=default]:max-w-xs data-[size=sm]:max-w-xs data-[size=default]:sm:max-w-sm group/alert-dialog-content fixed top-1/2 left-1/2 z-50 grid w-full -translate-x-1 -translate-y-1 outline-none",
       className,
     )}
     {...restProps}
