@@ -1,6 +1,6 @@
 {
-  "id": "e7773b14-c98c-4453-a7e3-0e37d9573ed4",
-  "prevId": "6cb5684d-87af-4e65-9a4e-39dbb953870a",
+  "id": "cecb2b9b-2823-47d6-8406-b97e1633ab3f",
+  "prevId": "901c5c11-d1b5-45c8-b76f-b0a1c6b27a24",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -397,6 +397,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "compose_yaml": {
+          "name": "compose_yaml",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "createdAt": {
           "name": "createdAt",
           "type": "timestamp with time zone",
@@ -622,6 +628,291 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.node_events": {
+      "name": "node_events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "server_id": {
+          "name": "server_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "app_id": {
+          "name": "app_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "event_type": {
+          "name": "event_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "payload": {
+          "name": "payload",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "received_at": {
+          "name": "received_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "node_events_server_idx": {
+          "name": "node_events_server_idx",
+          "columns": [
+            {
+              "expression": "server_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "node_events_type_idx": {
+          "name": "node_events_type_idx",
+          "columns": [
+            {
+              "expression": "event_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "node_events_received_idx": {
+          "name": "node_events_received_idx",
+          "columns": [
+            {
+              "expression": "received_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "node_events_server_type_idx": {
+          "name": "node_events_server_type_idx",
+          "columns": [
+            {
+              "expression": "server_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "event_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "node_events_server_received_idx": {
+          "name": "node_events_server_received_idx",
+          "columns": [
+            {
+              "expression": "server_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "received_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "node_events_server_id_servers_id_fk": {
+          "name": "node_events_server_id_servers_id_fk",
+          "tableFrom": "node_events",
+          "tableTo": "servers",
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "node_events_app_id_apps_id_fk": {
+          "name": "node_events_app_id_apps_id_fk",
+          "tableFrom": "node_events",
+          "tableTo": "apps",
+          "columnsFrom": ["app_id"],
+          "columnsTo": ["id"],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.node_stats": {
+      "name": "node_stats",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "serverId": {
+          "name": "serverId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cpuPercent": {
+          "name": "cpuPercent",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "memoryTotal": {
+          "name": "memoryTotal",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "memoryUsed": {
+          "name": "memoryUsed",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "memoryAvailable": {
+          "name": "memoryAvailable",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "diskTotal": {
+          "name": "diskTotal",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "diskUsed": {
+          "name": "diskUsed",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "uptime": {
+          "name": "uptime",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "containerCount": {
+          "name": "containerCount",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "containerStates": {
+          "name": "containerStates",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "receivedAt": {
+          "name": "receivedAt",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "node_stats_server_idx": {
+          "name": "node_stats_server_idx",
+          "columns": [
+            {
+              "expression": "serverId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "node_stats_received_idx": {
+          "name": "node_stats_received_idx",
+          "columns": [
+            {
+              "expression": "receivedAt",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "node_stats_serverId_servers_id_fk": {
+          "name": "node_stats_serverId_servers_id_fk",
+          "tableFrom": "node_stats",
+          "tableTo": "servers",
+          "columnsFrom": ["serverId"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.memberships": {
       "name": "memberships",
       "schema": "",
@@ -814,6 +1105,208 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.registered_nodes": {
+      "name": "registered_nodes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "server_id": {
+          "name": "server_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ssh_public_key": {
+          "name": "ssh_public_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "monitor_bearer_token": {
+          "name": "monitor_bearer_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'active'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "registered_nodes_server_idx": {
+          "name": "registered_nodes_server_idx",
+          "columns": [
+            {
+              "expression": "server_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "registered_nodes_status_idx": {
+          "name": "registered_nodes_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "registered_nodes_server_id_servers_id_fk": {
+          "name": "registered_nodes_server_id_servers_id_fk",
+          "tableFrom": "registered_nodes",
+          "tableTo": "servers",
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "registered_nodes_server_id_unique": {
+          "name": "registered_nodes_server_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["server_id"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.registration_tokens": {
+      "name": "registration_tokens",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "token_hash": {
+          "name": "token_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "server_id": {
+          "name": "server_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "used_at": {
+          "name": "used_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "registration_tokens_hash_idx": {
+          "name": "registration_tokens_hash_idx",
+          "columns": [
+            {
+              "expression": "token_hash",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "registration_tokens_expires_idx": {
+          "name": "registration_tokens_expires_idx",
+          "columns": [
+            {
+              "expression": "expires_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "registration_tokens_server_id_servers_id_fk": {
+          "name": "registration_tokens_server_id_servers_id_fk",
+          "tableFrom": "registration_tokens",
+          "tableTo": "servers",
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "registration_tokens_token_hash_unique": {
+          "name": "registration_tokens_token_hash_unique",
+          "nullsNotDistinct": false,
+          "columns": ["token_hash"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.servers": {
       "name": "servers",
       "schema": "",
@@ -838,6 +1331,26 @@
         },
         "address": {
           "name": "address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sshPort": {
+          "name": "sshPort",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 22
+        },
+        "sshUser": {
+          "name": "sshUser",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'root'"
+        },
+        "sshPrivateKey": {
+          "name": "sshPrivateKey",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -1110,6 +1623,18 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "username": {
+          "name": "username",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "avatar_url": {
+          "name": "avatar_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "createdAt": {
           "name": "createdAt",

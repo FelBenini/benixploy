@@ -77,6 +77,7 @@ export interface UserRepository {
     passwordHash?: string,
   ): Promise<User>;
   get(orgId: string, id: string): Promise<User | null>;
+  getByUserId(userId: string): Promise<User | null>;
   getByEmail(orgId: string, email: string): Promise<User | null>;
   getPasswordHashByEmail(
     email: string,
@@ -85,11 +86,14 @@ export interface UserRepository {
 
 export interface OrgRepository {
   create(db: DbExecutor, org: Org): Promise<Org>;
+  getById(id: string): Promise<Org | null>;
+  listByIds(ids: string[]): Promise<Org[]>;
 }
 
 export interface OrgMembershipRepository {
   create(db: DbExecutor, membership: OrgMembership): Promise<OrgMembership>;
   findByUserId(userId: string): Promise<OrgMembership | null>;
+  findByUserIdAll(userId: string): Promise<OrgMembership[]>;
 }
 
 export interface SessionRepository {

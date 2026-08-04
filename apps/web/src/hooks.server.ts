@@ -2,6 +2,8 @@ import type { Handle } from "@sveltejs/kit";
 import { app } from "$lib/server/app";
 import { SESSION_COOKIE } from "$lib/server/auth/session";
 
+export const ACTIVE_ORG_COOKIE = "active_org_id";
+
 export const handle: Handle = async ({ event, resolve }) => {
   // CSRF protection
   if (event.request.method !== "GET" && event.request.method !== "HEAD") {
@@ -27,14 +29,31 @@ export const handle: Handle = async ({ event, resolve }) => {
     const session = await app.auth.validateSessionToken(token);
     if (session) {
       event.locals.session = session;
-      const membership = await app.repo.memberships.findByUserId(
+      event.locals.user = await app.repo.users.getByUserId(session.userId);
+
+      const memberships = await app.repo.memberships.findByUserIdAll(
         session.userId,
       );
-      event.locals.orgId = membership?.orgId ?? null;
+      const membershipOrgIds = memberships.map((m) => m.orgId);
+
+      const activeOrgId = event.cookies.get(ACTIVE_ORG_COOKIE);
+      if (activeOrgId && membershipOrgIds.includes(activeOrgId)) {
+        event.locals.orgId = activeOrgId;
+      } else if (membershipOrgIds.length > 0) {
+        event.locals.orgId = membershipOrgIds[0];
+      } else {
+        event.locals.orgId = null;
+      }
     } else {
       event.locals.session = null;
       event.locals.orgId = null;
       event.cookies.delete(SESSION_COOKIE, {
+        path: "/",
+        httpOnly: true,
+        secure: true,
+        sameSite: "lax",
+      });
+      event.cookies.delete(ACTIVE_ORG_COOKIE, {
         path: "/",
         httpOnly: true,
         secure: true,

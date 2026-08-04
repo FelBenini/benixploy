@@ -5,14 +5,24 @@ type HandleEvent = Parameters<Handle>[0]["event"];
 
 let mockValidateSessionToken: ReturnType<typeof vi.fn>;
 let mockFindByUserId: ReturnType<typeof vi.fn>;
+let mockFindByUserIdAll: ReturnType<typeof vi.fn>;
+let mockGetByUserId: ReturnType<typeof vi.fn>;
 
 vi.mock("$lib/server/app", () => {
   mockValidateSessionToken = vi.fn();
   mockFindByUserId = vi.fn();
+  mockGetByUserId = vi.fn();
+  mockFindByUserIdAll = vi.fn();
   return {
     app: {
       auth: { validateSessionToken: mockValidateSessionToken },
-      repo: { memberships: { findByUserId: mockFindByUserId } },
+      repo: {
+        memberships: {
+          findByUserId: mockFindByUserId,
+          findByUserIdAll: mockFindByUserIdAll,
+        },
+        users: { getByUserId: mockGetByUserId },
+      },
     },
   };
 });
@@ -114,12 +124,15 @@ describe("handle hook", () => {
       expiresAt: new Date(Date.now() + 86400000),
     };
     mockValidateSessionToken.mockResolvedValue(mockSession);
-    mockFindByUserId.mockResolvedValue({
-      userId: "u1",
-      orgId: "org-1",
-      role: "admin",
-      createdAt: new Date(),
-    });
+    mockGetByUserId.mockResolvedValue({ userId: "u1", email: "test@test.com" });
+    mockFindByUserIdAll.mockResolvedValue([
+      {
+        userId: "u1",
+        orgId: "org-1",
+        role: "admin",
+        createdAt: new Date(),
+      },
+    ]);
     vi.mocked(event.cookies.get).mockReturnValue("valid-token");
 
     const resolve = vi.fn().mockResolvedValue(new Response("ok"));

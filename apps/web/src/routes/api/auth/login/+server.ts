@@ -73,7 +73,7 @@ export const POST: RequestHandler = async ({
   cookies.set(SESSION_COOKIE, session.token, {
     path: "/",
     httpOnly: true,
-    secure: true,
+    secure: process.env.IS_HTTPS ? true : false,
     sameSite: "lax",
     maxAge: SESSION_EXPIRES_IN_SECONDS,
   });
@@ -82,6 +82,8 @@ export const POST: RequestHandler = async ({
     user: {
       id: result.user.id,
       email: result.user.email,
+      username: result.user.username,
+      avatarUrl: result.user.avatarUrl,
     },
   });
 };

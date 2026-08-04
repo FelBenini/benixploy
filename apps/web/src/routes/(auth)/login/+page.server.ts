@@ -7,5 +7,8 @@ export const load: PageServerLoad = async ({ locals }) => {
     throw redirect(302, "/");
   }
   const configured = await app.systemSetup.isConfigured();
-  return { configured };
+  if (!configured) {
+    throw redirect(302, "/setup");
+  }
+  return {};
 };
