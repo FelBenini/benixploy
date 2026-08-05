@@ -38,10 +38,23 @@ export const ServerSchema = z.object({
 export const CreateServerInputSchema = ServerSchema.pick({
   name: true,
   address: true,
-  cpuCores: true,
-  memoryBytes: true,
-  diskBytes: true,
 }).extend({
+  cpuCores: z
+    .number()
+    .int()
+    .nonnegative()
+    .default(0)
+    .describe("Detected at registration when not provided"),
+  memoryBytes: z
+    .number()
+    .nonnegative()
+    .default(0)
+    .describe("Detected at registration when not provided"),
+  diskBytes: z
+    .number()
+    .nonnegative()
+    .default(0)
+    .describe("Detected at registration when not provided"),
   labels: z.record(z.string(), z.string()).optional(),
   sshPort: z
     .number()

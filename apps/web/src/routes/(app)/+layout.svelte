@@ -5,6 +5,7 @@
   import LayoutDashboard from "@lucide/svelte/icons/layout-dashboard";
   import Server from "@lucide/svelte/icons/server";
   import Settings from "@lucide/svelte/icons/settings";
+  import Boxes from "@lucide/svelte/icons/boxes";
   import { page } from "$app/state";
 
   let { data, children } = $props();
@@ -28,9 +29,14 @@
       icon: LayoutDashboard,
     },
     {
+      title: "Servers",
+      url: "/servers",
+      icon: Server,
+    },
+    {
       title: "Apps",
       url: "/apps",
-      icon: Server,
+      icon: Boxes,
     },
     {
       title: "Settings",
@@ -89,7 +95,7 @@
       <Sidebar.Trigger class="flex md:hidden mr-2 text-xl px-8 h-full" />
       <span class="text-foreground text-lg font-bold">Dashboard</span>
     </header>
-    <div class="flex flex-1 flex-col gap-6 p-6">
+    <div class="bg-background flex flex-1 flex-col">
       {@render children()}
     </div>
   </Sidebar.Inset>
