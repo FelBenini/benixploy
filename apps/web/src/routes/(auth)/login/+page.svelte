@@ -46,7 +46,7 @@
   class="flex flex-col h-screen w-full items-center justify-center overflow-hidden bg-[linear-gradient(to_bottom,var(--background)_50%,transparent),linear-gradient(to_right,#EF0A8620,#ff690020)]"
 >
   <BackgroundGrid />
-  <img src="/logo.svg" alt="benisploy" class="mx-auto mb-[-4rem]" />
+  <img src="/logo.svg" alt="benisploy" class="mx-auto mb-1 max-w-xs w-full" />
   <div
     class="z-10 mx-auto w-[calc(100%-2rem)] max-w-md rounded-md bg-background/10 shadow-lg ring-1 ring-foreground/10 backdrop-blur-sm bg-[radial-gradient(circle_at_top_left,_#EF0A8610_0%,_transparent_50%),radial-gradient(circle_at_bottom_right,_#f0fdfa10_0%,_transparent_50%)]"
   >
