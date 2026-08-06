@@ -66,7 +66,8 @@
                   variant="ghost"
                   size="lg"
                   class="text-foreground/80 data-active:outline-solid data-active:outline-1 outline-border data-active:bg-[linear-gradient(var(--border),transparent)] rounded-[2px]"
-                  isActive={page.url.pathname === item.url}
+                  isActive={page.url.pathname.split("/")[1] ===
+                    item.url.split("/")[1]}
                 >
                   {#snippet child({ props })}
                     <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
