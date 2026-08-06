@@ -261,6 +261,8 @@ export class InMemorySystemSetupRepo implements SystemSetupRepository {
 
 export class InMemoryOrgRepo implements OrgRepository {
   private data = new Map<string, Org>();
+  constructor(private memberships?: InMemoryMembershipRepo) {}
+
   async create(_db: unknown, org: Org): Promise<Org> {
     this.data.set(org.id, org);
     return org;
@@ -272,6 +274,12 @@ export class InMemoryOrgRepo implements OrgRepository {
     return ids
       .map((id) => this.data.get(id))
       .filter((o): o is Org => o !== undefined);
+  }
+
+  async isUserFromOrg(userId: string, orgId: string): Promise<boolean> {
+    if (!this.memberships || !userId || !orgId) return false;
+    const userMemberships = await this.memberships.findByUserIdAll(userId);
+    return userMemberships.some((m) => m.orgId === orgId);
   }
 }
 
@@ -447,8 +455,8 @@ export class InMemoryRepository implements Repository {
     this.users = new InMemoryUserRepo();
     this.sessions = new InMemorySessionRepo();
     this.systemSetup = new InMemorySystemSetupRepo();
-    this.orgs = new InMemoryOrgRepo();
     this.memberships = new InMemoryMembershipRepo();
+    this.orgs = new InMemoryOrgRepo(this.memberships);
     this.nodeEvents = new InMemoryNodeEventRepo();
     this.registeredNodes = new InMemoryRegisteredNodeRepo();
     this.registrationTokens = new InMemoryRegistrationTokenRepo();

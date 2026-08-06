@@ -88,6 +88,7 @@ export interface OrgRepository {
   create(db: DbExecutor, org: Org): Promise<Org>;
   getById(id: string): Promise<Org | null>;
   listByIds(ids: string[]): Promise<Org[]>;
+  isUserFromOrg(userId: string, orgId: string): Promise<boolean>;
 }
 
 export interface OrgMembershipRepository {

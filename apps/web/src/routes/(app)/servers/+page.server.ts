@@ -5,6 +5,10 @@ export const load: ServerLoad = async ({ locals }) => {
   if (!locals.orgId) {
     return { servers: [] };
   }
+  const isUserFromOrg = await app.repo.orgs.isUserFromOrg(locals.user?.id ?? "", locals.orgId);
+  if (!isUserFromOrg) {
+    return { servers: [] };
+  }
   const servers = await app.repo.servers.list(locals.orgId);
   return {
     servers: servers.map((s) => ({
