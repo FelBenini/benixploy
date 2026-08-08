@@ -19,12 +19,12 @@ import { hashPassword, verifyPassword } from "$lib/server/auth/password";
 
 import { ENCRYPTION_KEY } from "$app/env/private";
 
-const hasEncryption = ENCRYPTION_KEY?.length > 0;
+const hasEncryption = ENCRYPTION_KEY != null && ENCRYPTION_KEY.length > 0;
 const encryptKey = hasEncryption
-  ? (s: string) => encrypt(s, ENCRYPTION_KEY)
+  ? (s: string) => encrypt(s, ENCRYPTION_KEY as string)
   : undefined;
 const decryptKey = hasEncryption
-  ? (s: string) => decrypt(s, ENCRYPTION_KEY)
+  ? (s: string) => decrypt(s, ENCRYPTION_KEY as string)
   : undefined;
 const repo = new DrizzleRepository(db, encryptKey, decryptKey);
 
