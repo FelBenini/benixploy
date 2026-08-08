@@ -52,6 +52,19 @@ export interface ServerRepository {
   list(orgId: string): Promise<Server[]>;
   updateStatus(orgId: string, id: string, status: string): Promise<void>;
   updateHeartbeat(orgId: string, id: string): Promise<void>;
+  provision(
+    orgId: string,
+    id: string,
+    data: {
+      sshPrivateKey: string;
+      sshUser: string;
+      cpuCores: number;
+      memoryBytes: number;
+      diskBytes: number;
+      status: string;
+      lastHeartbeatAt: string;
+    },
+  ): Promise<void>;
 }
 
 export interface AppRepository {

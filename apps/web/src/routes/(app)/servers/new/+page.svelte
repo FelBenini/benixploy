@@ -8,7 +8,9 @@
   import Key from "@lucide/svelte/icons/key";
   import Terminal from "@lucide/svelte/icons/terminal";
   import CheckCircle from "@lucide/svelte/icons/check-circle";
+  import Button from "$lib/components/ui/button/button.svelte";
   import type { WizardStep } from "$lib/components/ui/wizard/index.js";
+  import { ArrowLeft } from "@lucide/svelte";
 
   const steps: WizardStep[] = [
     {
@@ -70,6 +72,8 @@
     status: string;
   } | null>(null);
 
+  let provisioningServerId = $state<string | null>(null);
+
   const portValid = $derived(
     /^\d+$/.test(sshPort) && Number(sshPort) >= 1 && Number(sshPort) <= 65535,
   );
@@ -92,10 +96,6 @@
 
   function chooseExternal() {
     step = 1;
-  }
-
-  function sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   async function createServer(): Promise<{
@@ -127,21 +127,80 @@
     installState = "running";
     activePhase = -1;
     completedPhases = 0;
-    createdServer = null;
 
     try {
-      createdServer = await createServer();
-      for (const phase of installPhases) {
-        activePhase = installPhases.indexOf(phase);
-        await sleep(700);
-        completedPhases++;
+      if (!provisioningServerId) {
+        createdServer = await createServer();
+        provisioningServerId = createdServer.id;
       }
+      await runProvisioning(provisioningServerId);
       activePhase = -1;
       installState = "done";
     } catch (err) {
       activePhase = -1;
       installState = "error";
       error = err instanceof Error ? err.message : "Installation failed";
+    }
+  }
+
+  async function runProvisioning(serverId: string) {
+    const response = await fetch(`/api/servers/${serverId}/provision`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        accessMethod,
+        sshUser: sshUser.trim() || "root",
+        privateKey: accessMethod === "key" ? privateKey : undefined,
+        password: accessMethod === "password" ? password : undefined,
+      }),
+    });
+
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      throw new Error(
+        (body as { error?: string }).error ?? "Provisioning failed",
+      );
+    }
+
+    const reader = response.body!.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const events = buffer.split("\n\n");
+      buffer = events.pop()!;
+
+      for (const raw of events) {
+        const lines = raw.split("\n");
+        let eventType = "";
+        let data = "";
+        for (const line of lines) {
+          if (line.startsWith("event: ")) eventType = line.slice(7);
+          if (line.startsWith("data: ")) data = line.slice(6);
+        }
+        if (!data) continue;
+
+        const parsed: Record<string, unknown> = JSON.parse(data);
+
+        if (eventType === "phase") {
+          const phaseIdx = parsed.phase as number;
+          if (parsed.status === "active") {
+            activePhase = phaseIdx;
+          } else if (parsed.status === "done") {
+            completedPhases = Math.max(completedPhases, phaseIdx + 1);
+          } else if (parsed.status === "error") {
+            throw new Error(
+              (parsed.error as string) ?? `Phase ${phaseIdx} failed`,
+            );
+          }
+        } else if (eventType === "error") {
+          throw new Error((parsed.message as string) ?? "Provisioning failed");
+        }
+      }
     }
   }
 
@@ -177,8 +236,11 @@
   <Wizard.Root
     {steps}
     bind:step
-    class="flex h-full w-full max-w-xl flex-col ring-0 rounded mx-auto border-none outline-none bg-none"
+    class="flex h-full w-full max-w-xl flex-col ring-0 relative rounded mx-auto border-none outline-none bg-none"
   >
+    <Button variant="outline" class="absolute top-6 left-6" href="/servers"
+      ><ArrowLeft />Servers</Button
+    >
     <Wizard.Header />
     <Wizard.Steps />
 
@@ -189,11 +251,7 @@
           onExternal={chooseExternal}
         />
       {:else if step === 1}
-        <Steps.ServerDetails
-          bind:name
-          bind:address
-          bind:sshPort
-        />
+        <Steps.ServerDetails bind:name bind:address bind:sshPort />
       {:else if step === 2}
         <Steps.InitialAccess
           bind:accessMethod
@@ -211,13 +269,7 @@
           onRetry={startInstall}
         />
       {:else if step === 4}
-        <Steps.DoneStep
-          {createdServer}
-          {name}
-          {address}
-          {sshPort}
-          {sshUser}
-        />
+        <Steps.DoneStep {createdServer} {name} {address} {sshPort} {sshUser} />
       {/if}
     </Wizard.Content>
 

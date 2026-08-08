@@ -52,10 +52,7 @@ export class DrizzleOrgRepository implements OrgRepository {
       .select()
       .from(orgMemberships)
       .where(
-        and(
-          eq(orgMemberships.userId, userId),
-          eq(orgMemberships.orgId, orgId),
-        ),
+        and(eq(orgMemberships.userId, userId), eq(orgMemberships.orgId, orgId)),
       )
       .limit(1);
     return row !== undefined;

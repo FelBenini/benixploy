@@ -1,6 +1,6 @@
-import { defineEnvVars } from "@sveltejs/kit/hooks";
+import { defineEnvVars } from "@sveltejs/kit/env";
 
 export const variables = defineEnvVars({
   DATABASE_URL: {},
-  NODE_AGENT_WS_PORT: {},
+  ENCRYPTION_KEY: {},
 });

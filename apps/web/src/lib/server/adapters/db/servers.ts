@@ -103,4 +103,34 @@ export class DrizzleServerRepository implements ServerRepository {
       .set({ status: "online", lastHeartbeatAt: now, updatedAt: now })
       .where(and(eq(servers.id, id), eq(servers.orgId, orgId)));
   }
+
+  async provision(
+    orgId: string,
+    id: string,
+    data: {
+      sshPrivateKey: string;
+      sshUser: string;
+      cpuCores: number;
+      memoryBytes: number;
+      diskBytes: number;
+      status: string;
+      lastHeartbeatAt: string;
+    },
+  ): Promise<void> {
+    await this.db
+      .update(servers)
+      .set({
+        sshPrivateKey: this.encryptPrivateKey
+          ? this.encryptPrivateKey(data.sshPrivateKey)
+          : data.sshPrivateKey,
+        sshUser: data.sshUser,
+        cpuCores: data.cpuCores,
+        memoryBytes: data.memoryBytes,
+        diskBytes: data.diskBytes,
+        status: data.status,
+        lastHeartbeatAt: new Date(data.lastHeartbeatAt),
+        updatedAt: new Date(),
+      })
+      .where(and(eq(servers.id, id), eq(servers.orgId, orgId)));
+  }
 }

@@ -68,6 +68,15 @@ export const CreateServerInputSchema = ServerSchema.pick({
 
 export type CreateServerInput = z.infer<typeof CreateServerInputSchema>;
 
+export const ProvisionServerInputSchema = z.object({
+  accessMethod: z.enum(["key", "password"]),
+  sshUser: z.string().min(1).default("root"),
+  privateKey: z.string().optional(),
+  password: z.string().optional(),
+});
+
+export type ProvisionServerInput = z.infer<typeof ProvisionServerInputSchema>;
+
 export type Server = z.infer<typeof ServerSchema>;
 
 export const ServerStatusReportSchema = z.object({

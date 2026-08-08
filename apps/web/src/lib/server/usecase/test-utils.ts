@@ -104,6 +104,32 @@ export class InMemoryServerRepo implements ServerRepository {
       s.updatedAt = new Date().toISOString();
     }
   }
+
+  async provision(
+    orgId: string,
+    id: string,
+    data: {
+      sshPrivateKey: string;
+      sshUser: string;
+      cpuCores: number;
+      memoryBytes: number;
+      diskBytes: number;
+      status: string;
+      lastHeartbeatAt: string;
+    },
+  ): Promise<void> {
+    const s = this.orgMap(orgId).get(id);
+    if (s) {
+      s.sshPrivateKey = data.sshPrivateKey;
+      s.sshUser = data.sshUser;
+      s.cpuCores = data.cpuCores;
+      s.memoryBytes = data.memoryBytes;
+      s.diskBytes = data.diskBytes;
+      s.status = data.status as Server["status"];
+      s.lastHeartbeatAt = data.lastHeartbeatAt;
+      s.updatedAt = new Date().toISOString();
+    }
+  }
 }
 
 export class InMemoryAppRepo implements AppRepository {
