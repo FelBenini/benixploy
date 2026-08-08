@@ -44,9 +44,16 @@ const PHASES = [
   "Verifying heartbeat",
 ];
 
-const DEPLOY_SCRIPTS_DIR =
-  process.env.DEPLOY_SCRIPTS_DIR ||
-  join(process.cwd(), "../../deploy/node-setup");
+function resolveDeployScriptsDir(): string {
+  return (
+    process.env.DEPLOY_SCRIPTS_DIR ||
+    join(process.cwd(), "../../deploy/node-setup")
+  );
+}
+
+function readDeployScript(name: string): string {
+  return readFileSync(join(resolveDeployScriptsDir(), name), "utf-8");
+}
 
 function generateSshKeyPair(): { publicKey: string; privateKey: string } {
   const dir = mkdtempSync(join(tmpdir(), "benisploy-key-"));
@@ -61,10 +68,6 @@ function generateSshKeyPair(): { publicKey: string; privateKey: string } {
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
-}
-
-function readDeployScript(name: string): string {
-  return readFileSync(join(DEPLOY_SCRIPTS_DIR, name), "utf-8");
 }
 
 export function createProvisionServer(repo: Repository) {
