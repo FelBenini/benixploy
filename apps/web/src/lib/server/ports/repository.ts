@@ -63,6 +63,7 @@ export interface ServerRepository {
       diskBytes: number;
       status: string;
       lastHeartbeatAt: string;
+      hostKeyFingerprint?: string | null;
     },
   ): Promise<void>;
 }

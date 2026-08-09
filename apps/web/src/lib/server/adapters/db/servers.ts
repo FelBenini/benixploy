@@ -24,6 +24,7 @@ function toDomain(
     memoryBytes: row.memoryBytes,
     diskBytes: row.diskBytes,
     labels: row.labels as Record<string, string>,
+    hostKeyFingerprint: row.hostKeyFingerprint,
     lastHeartbeatAt: row.lastHeartbeatAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
@@ -55,6 +56,10 @@ export class DrizzleServerRepository implements ServerRepository {
         memoryBytes: input.memoryBytes,
         diskBytes: input.diskBytes,
         labels: input.labels,
+        hostKeyFingerprint: input.hostKeyFingerprint ?? null,
+        lastHeartbeatAt: input.lastHeartbeatAt
+          ? new Date(input.lastHeartbeatAt)
+          : null,
         createdAt: new Date(input.createdAt),
         updatedAt: new Date(input.updatedAt),
       })
@@ -115,6 +120,7 @@ export class DrizzleServerRepository implements ServerRepository {
       diskBytes: number;
       status: string;
       lastHeartbeatAt: string;
+      hostKeyFingerprint?: string | null;
     },
   ): Promise<void> {
     await this.db
@@ -129,6 +135,7 @@ export class DrizzleServerRepository implements ServerRepository {
         diskBytes: data.diskBytes,
         status: data.status,
         lastHeartbeatAt: new Date(data.lastHeartbeatAt),
+        hostKeyFingerprint: data.hostKeyFingerprint ?? null,
         updatedAt: new Date(),
       })
       .where(and(eq(servers.id, id), eq(servers.orgId, orgId)));

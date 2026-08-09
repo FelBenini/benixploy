@@ -1,5 +1,6 @@
 import { Client, type ConnectConfig } from "ssh2";
 import SFTPClient from "ssh2-sftp-client";
+import { createHash } from "node:crypto";
 
 export type ProvisionCredentials =
   { type: "password"; password: string } | { type: "key"; privateKey: string };
@@ -19,6 +20,48 @@ export class ProvisionSshError extends Error {
     super(message);
     this.name = "ProvisionSshError";
   }
+}
+
+const FINGERPRINT_PREFIX = "SHA256:";
+
+export function computeHostFingerprint(hostKey: Buffer): string {
+  return (
+    FINGERPRINT_PREFIX +
+    createHash("sha256").update(hostKey).digest("base64")
+  );
+}
+
+export interface TofuHostVerifier {
+  verify: (key: Buffer) => boolean;
+  fingerprint: string | null;
+}
+
+export function createTofuHostVerifier(
+  storedFingerprint?: string | null,
+): TofuHostVerifier {
+  let captured: string | null = null;
+
+  const verify = (key: Buffer): boolean => {
+    const fp = computeHostFingerprint(key);
+
+    if (storedFingerprint) {
+      return fp === storedFingerprint;
+    }
+
+    if (captured === null) {
+      captured = fp;
+      return true;
+    }
+
+    return fp === captured;
+  };
+
+  return {
+    verify,
+    get fingerprint() {
+      return captured;
+    },
+  };
 }
 
 export function connectForProvisioning(

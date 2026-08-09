@@ -9,6 +9,7 @@ import {
   connectForProvisioning,
   executeCommand,
   uploadFile,
+  createTofuHostVerifier,
 } from "../adapters/node-ssh/ssh-provision-client";
 import type { ProvisionAuth } from "../adapters/node-ssh";
 import {
@@ -110,8 +111,11 @@ export function createProvisionServer(repo: Repository) {
     try {
       // Phase 0: Connect to server
       yield { phase: 0, label: PHASES[0], status: "active" };
-      const client = await connectForProvisioning(auth);
+      const tofu = createTofuHostVerifier();
+      const client = await connectForProvisioning(auth, tofu.verify);
       yield { phase: 0, label: PHASES[0], status: "done" };
+
+      const hostFingerprint = tofu.fingerprint;
 
       try {
         // Phase 1: Detect hardware specs
@@ -151,8 +155,8 @@ export function createProvisionServer(repo: Repository) {
         const installScript = readDeployScript("install.sh");
         const execCommandScript = readDeployScript("exec-command.sh");
 
-        await uploadFile(auth, installScript, "/tmp/install.sh");
-        await uploadFile(auth, execCommandScript, "/tmp/exec-command.sh");
+        await uploadFile(auth, installScript, "/tmp/install.sh", tofu.verify);
+        await uploadFile(auth, execCommandScript, "/tmp/exec-command.sh", tofu.verify);
 
         const pubKey = keyPair.publicKey;
 
@@ -209,6 +213,7 @@ export function createProvisionServer(repo: Repository) {
           diskBytes: specs.diskBytes,
           status: "online",
           lastHeartbeatAt: now,
+          hostKeyFingerprint: hostFingerprint,
         });
 
         yield { type: "done", serverId: server.id };

@@ -64,6 +64,13 @@ export class InMemoryServerRepo implements ServerRepository {
       memoryBytes: input.memoryBytes,
       diskBytes: input.diskBytes,
       labels: input.labels ?? {},
+      hostKeyFingerprint:
+        "hostKeyFingerprint" in input
+          ? (input as Record<string, unknown>).hostKeyFingerprint as
+              | string
+              | null
+              | undefined
+          : null,
       createdAt: input.createdAt,
       updatedAt: input.updatedAt,
       lastHeartbeatAt: input.lastHeartbeatAt,
@@ -116,6 +123,7 @@ export class InMemoryServerRepo implements ServerRepository {
       diskBytes: number;
       status: string;
       lastHeartbeatAt: string;
+      hostKeyFingerprint?: string | null;
     },
   ): Promise<void> {
     const s = this.orgMap(orgId).get(id);
@@ -127,6 +135,7 @@ export class InMemoryServerRepo implements ServerRepository {
       s.diskBytes = data.diskBytes;
       s.status = data.status as Server["status"];
       s.lastHeartbeatAt = data.lastHeartbeatAt;
+      s.hostKeyFingerprint = data.hostKeyFingerprint ?? null;
       s.updatedAt = new Date().toISOString();
     }
   }

@@ -23,6 +23,7 @@ export function createRegisterServer(repo: Repository) {
       sshPrivateKey: keyPair.privateKey,
       labels: input.labels ?? {},
       status: "offline",
+      hostKeyFingerprint: null,
       lastHeartbeatAt: null,
       createdAt: now,
       updatedAt: now,

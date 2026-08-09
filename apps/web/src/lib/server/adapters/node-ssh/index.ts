@@ -10,8 +10,11 @@ export {
   executeCommand,
   uploadFile,
   ProvisionSshError,
+  computeHostFingerprint,
+  createTofuHostVerifier,
 } from "./ssh-provision-client";
 export type {
   ProvisionAuth,
   ProvisionCredentials,
+  TofuHostVerifier,
 } from "./ssh-provision-client";

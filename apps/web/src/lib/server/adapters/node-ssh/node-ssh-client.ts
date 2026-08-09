@@ -6,6 +6,7 @@ import type {
   ContainerState,
 } from "../../ports/node-command-client";
 import type { Server } from "../../domain/server";
+import { computeHostFingerprint } from "./ssh-provision-client";
 
 const APP_ID_PATTERN = /^[a-zA-Z0-9_-]+$/;
 const APPS_BASE_PATH = "/opt/benisploy/apps";
@@ -114,6 +115,21 @@ export class SshNodeCommandClient implements NodeCommandClient {
     return server;
   }
 
+  private buildHostVerifier(
+    server: Server,
+  ): (key: Buffer) => boolean {
+    if (this.config.hostVerifier) return this.config.hostVerifier;
+
+    const stored = server.hostKeyFingerprint;
+    if (!stored) {
+      return () => false;
+    }
+
+    return (key: Buffer) => {
+      return computeHostFingerprint(key) === stored;
+    };
+  }
+
   private createConnection(server: Server): Promise<Client> {
     return new Promise<Client>((resolve, reject) => {
       const client = new Client();
@@ -128,13 +144,11 @@ export class SshNodeCommandClient implements NodeCommandClient {
       client.on("error", (err) => {
         if (settled) return;
         settled = true;
-        reject(
-          new SshConnectionError(
-            `Connection failed: ${err.message}`,
-            server.id,
-            err,
-          ),
-        );
+        const isHostKeyError = /host key/i.test(err.message);
+        const msg = isHostKeyError
+          ? `Host key verification failed for "${server.name}" (${server.address}:${server.sshPort ?? 22}). The SSH host key has changed — this could indicate a MITM attack or the server was rebuilt. Stored: ${server.hostKeyFingerprint}. To resolve: re-provision the server from the dashboard.`
+          : `Connection failed: ${err.message}`;
+        reject(new SshConnectionError(msg, server.id, err));
       });
 
       client.on("close", () => {
@@ -150,7 +164,7 @@ export class SshNodeCommandClient implements NodeCommandClient {
         username: server.sshUser ?? "root",
         privateKey: server.sshPrivateKey,
         readyTimeout: 15_000,
-        hostVerifier: this.config.hostVerifier ?? (() => true),
+        hostVerifier: this.buildHostVerifier(server),
       };
 
       client.connect(cfg);
@@ -336,7 +350,7 @@ export class SshNodeCommandClient implements NodeCommandClient {
         username: server.sshUser ?? "root",
         privateKey: server.sshPrivateKey,
         readyTimeout: 15_000,
-        hostVerifier: this.config.hostVerifier ?? (() => true),
+        hostVerifier: this.buildHostVerifier(server),
       } as Record<string, unknown>);
       await (
         sftp.mkdir as unknown as (

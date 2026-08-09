@@ -115,6 +115,7 @@ CREATE TABLE "servers" (
 	"memoryBytes" bigint NOT NULL,
 	"diskBytes" bigint NOT NULL,
 	"labels" jsonb DEFAULT '{}'::jsonb NOT NULL,
+	"host_key_fingerprint" text,
 	"lastHeartbeatAt" timestamp with time zone,
 	"createdAt" timestamp with time zone DEFAULT now() NOT NULL,
 	"updatedAt" timestamp with time zone DEFAULT now() NOT NULL
@@ -138,6 +139,8 @@ CREATE TABLE "users" (
 	"id" text PRIMARY KEY NOT NULL,
 	"email" text NOT NULL,
 	"passwordHash" text NOT NULL,
+	"username" text,
+	"avatar_url" text,
 	"createdAt" timestamp with time zone DEFAULT now() NOT NULL,
 	"updatedAt" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "users_email_unique" UNIQUE("email")
