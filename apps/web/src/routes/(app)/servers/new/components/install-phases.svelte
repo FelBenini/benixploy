@@ -86,16 +86,16 @@
 
   {#if knownErrors.length > 0}
     <div class="mt-3 flex flex-col gap-3">
-      {#each knownErrors as entry}
+      {#each knownErrors as entry, i (i)}
         <div class="rounded-lg border border-border bg-muted/20 p-3">
           <p class="flex items-start gap-2 text-sm">
             <Lightbulb class="mt-0.5 size-3.5 shrink-0 text-amber-400" />
             <span class="text-foreground/90">{entry.diagnostic}</span>
           </p>
           <ol class="mt-2.5 ml-5 list-decimal space-y-1.5">
-            {#each entry.solutions as solution}
+            {#each entry.solutions as solution, j (j)}
               <li class="text-xs text-muted-foreground leading-relaxed">
-                {#each renderSegments(solution) as seg}
+                {#each renderSegments(solution) as seg, k (k)}
                   {#if seg.type === "code"}
                     <code
                       class="select-all rounded bg-muted px-1 py-px font-mono text-[11px] text-foreground/80">{
