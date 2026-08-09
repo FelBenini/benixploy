@@ -3,6 +3,12 @@
   import { Button } from "$lib/components/ui/button";
   import Check from "@lucide/svelte/icons/check";
   import AlertCircle from "@lucide/svelte/icons/alert-circle";
+  import Lightbulb from "@lucide/svelte/icons/lightbulb";
+
+  interface KnownErrorItem {
+    diagnostic: string;
+    solutions: string[];
+  }
 
   let {
     phases,
@@ -10,6 +16,7 @@
     activePhase,
     completedPhases,
     error,
+    knownErrors = [],
     onRetry,
   }: {
     phases: string[];
@@ -17,8 +24,29 @@
     activePhase: number;
     completedPhases: number;
     error: string;
+    knownErrors?: KnownErrorItem[];
     onRetry: () => void;
   } = $props();
+
+  function renderSegments(
+    text: string,
+  ): Array<{ type: "text" | "code"; value: string }> {
+    const parts: Array<{ type: "text" | "code"; value: string }> = [];
+    const regex = /`([^`]+)`/g;
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+    while ((match = regex.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push({ type: "text", value: text.slice(lastIndex, match.index) });
+      }
+      parts.push({ type: "code", value: match[1] });
+      lastIndex = regex.lastIndex;
+    }
+    if (lastIndex < text.length) {
+      parts.push({ type: "text", value: text.slice(lastIndex) });
+    }
+    return parts;
+  }
 </script>
 
 <div class="flex flex-col gap-2 py-2">
@@ -55,6 +83,36 @@
     <AlertCircle class="mt-0.5 size-4 shrink-0" />
     <span class="flex-1">{error}</span>
   </div>
+
+  {#if knownErrors.length > 0}
+    <div class="mt-3 flex flex-col gap-3">
+      {#each knownErrors as entry}
+        <div class="rounded-lg border border-border bg-muted/20 p-3">
+          <p class="flex items-start gap-2 text-sm">
+            <Lightbulb class="mt-0.5 size-3.5 shrink-0 text-amber-400" />
+            <span class="text-foreground/90">{entry.diagnostic}</span>
+          </p>
+          <ol class="mt-2.5 ml-5 list-decimal space-y-1.5">
+            {#each entry.solutions as solution}
+              <li class="text-xs text-muted-foreground leading-relaxed">
+                {#each renderSegments(solution) as seg}
+                  {#if seg.type === "code"}
+                    <code
+                      class="select-all rounded bg-muted px-1 py-px font-mono text-[11px] text-foreground/80">{
+                      seg.value
+                    }</code>
+                  {:else}
+                    {seg.value}
+                  {/if}
+                {/each}
+              </li>
+            {/each}
+          </ol>
+        </div>
+      {/each}
+    </div>
+  {/if}
+
   <Button type="button" variant="outline" class="mt-3" onclick={onRetry}>
     Try again
   </Button>

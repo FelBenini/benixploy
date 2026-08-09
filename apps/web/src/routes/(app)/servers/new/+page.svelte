@@ -12,7 +12,12 @@
   import type { WizardStep } from "$lib/components/ui/wizard/index.js";
   import { ArrowLeft } from "@lucide/svelte";
 
-  const steps: WizardStep[] = [
+interface KnownErrorItem {
+  diagnostic: string;
+  solutions: string[];
+}
+
+const steps: WizardStep[] = [
     {
       title: "New Server",
       description: "Choose where Benisploy should be installed.",
@@ -61,6 +66,7 @@
   let privateKey = $state("");
   let password = $state("");
   let error = $state("");
+  let knownErrors = $state<KnownErrorItem[]>([]);
 
   let installState = $state<"idle" | "running" | "done" | "error">("idle");
   let activePhase = $state(-1);
@@ -124,6 +130,7 @@
 
   async function startInstall() {
     error = "";
+    knownErrors = [];
     installState = "running";
     activePhase = -1;
     completedPhases = 0;
@@ -198,6 +205,7 @@
             );
           }
         } else if (eventType === "error") {
+          knownErrors = (parsed.knownErrors as KnownErrorItem[]) ?? [];
           throw new Error((parsed.message as string) ?? "Provisioning failed");
         }
       }
@@ -266,6 +274,7 @@
           {activePhase}
           {completedPhases}
           {error}
+          {knownErrors}
           onRetry={startInstall}
         />
       {:else if step === 4}

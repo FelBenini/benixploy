@@ -11,6 +11,10 @@ import {
   uploadFile,
 } from "../adapters/node-ssh/ssh-provision-client";
 import type { ProvisionAuth } from "../adapters/node-ssh";
+import {
+  resolveKnownErrors,
+  type ResolvedError,
+} from "../domain/provision-errors";
 
 export interface ProvisionPhase {
   phase: number;
@@ -28,6 +32,7 @@ export interface ProvisionError {
   type: "error";
   phase: number;
   message: string;
+  knownErrors?: ResolvedError[];
 }
 
 export type ProvisionEvent = ProvisionPhase | ProvisionDone | ProvisionError;
@@ -144,14 +149,18 @@ export function createProvisionServer(repo: Repository) {
         await uploadFile(auth, execCommandScript, "/tmp/exec-command.sh");
 
         const pubKey = keyPair.publicKey;
+        const sudo = auth.username !== "root" ? "sudo -n" : "";
         const installCmd = [
           "chmod +x /tmp/install.sh /tmp/exec-command.sh",
           "&&",
+          sudo,
           "/tmp/install.sh",
           `--exec-key '${pubKey}'`,
           `--sftp-key '${pubKey}'`,
           `--control-plane '${controlPlaneUrl}'`,
-        ].join(" ");
+        ]
+          .filter(Boolean)
+          .join(" ");
 
         await executeCommand(client, installCmd, 120_000);
 
@@ -191,10 +200,14 @@ export function createProvisionServer(repo: Repository) {
         client.end();
       }
     } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Provisioning failed";
+      const knownErrors = resolveKnownErrors(message, auth.username);
       yield {
         type: "error",
         phase: -1,
-        message: err instanceof Error ? err.message : "Provisioning failed",
+        message,
+        ...(knownErrors.length > 0 ? { knownErrors } : {}),
       };
     }
   };

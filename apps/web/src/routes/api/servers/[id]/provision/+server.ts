@@ -55,7 +55,11 @@ export const POST: RequestHandler = async ({
           if ("type" in event && event.type === "done") {
             send("done", { serverId: event.serverId });
           } else if ("type" in event && event.type === "error") {
-            send("error", { phase: event.phase, message: event.message });
+            send("error", {
+              phase: event.phase,
+              message: event.message,
+              ...(event.knownErrors ? { knownErrors: event.knownErrors } : {}),
+            });
           } else if ("phase" in event) {
             send("phase", event);
           }

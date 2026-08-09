@@ -102,7 +102,24 @@ export function executeCommand(
         clearTimeout(timer);
         if (settled) return;
         settled = true;
-        resolve({ stdout, stderr, exitCode });
+        if (exitCode !== 0) {
+          const reason =
+            exitCode === null
+              ? "killed by signal"
+              : `exited with code ${exitCode}`;
+          const detail = (stderr || stdout || "no output")
+            .trim()
+            .replace(/^\[benisploy-setup\]\s*/gm, "")
+            .trim()
+            .slice(0, 500);
+          reject(
+            new ProvisionSshError(
+              `Command ${reason}: ${detail || "unknown error"}`,
+            ),
+          );
+        } else {
+          resolve({ stdout, stderr, exitCode });
+        }
       });
 
       channel.stderr.on("error", () => {});
