@@ -16,6 +16,12 @@ import {
   type ResolvedError,
 } from "../domain/provision-errors";
 
+const SSH_ED25519_PUBKEY_RE = /^ssh-ed25519\s+[A-Za-z0-9+/=]+\s+.*$/;
+
+function shellEscape(value: string): string {
+  return value.replace(/'/g, "'\\''");
+}
+
 export interface ProvisionPhase {
   phase: number;
   label: string;
@@ -149,15 +155,25 @@ export function createProvisionServer(repo: Repository) {
         await uploadFile(auth, execCommandScript, "/tmp/exec-command.sh");
 
         const pubKey = keyPair.publicKey;
+
+        if (!SSH_ED25519_PUBKEY_RE.test(pubKey)) {
+          yield {
+            type: "error",
+            phase: -1,
+            message: `Generated SSH public key has unexpected format`,
+          };
+          return;
+        }
+
         const sudo = auth.username !== "root" ? "sudo -n" : "";
         const installCmd = [
           "chmod +x /tmp/install.sh /tmp/exec-command.sh",
           "&&",
           sudo,
           "/tmp/install.sh",
-          `--exec-key '${pubKey}'`,
-          `--sftp-key '${pubKey}'`,
-          `--control-plane '${controlPlaneUrl}'`,
+          `--exec-key '${shellEscape(pubKey)}'`,
+          `--sftp-key '${shellEscape(pubKey)}'`,
+          `--control-plane '${shellEscape(controlPlaneUrl)}'`,
         ]
           .filter(Boolean)
           .join(" ");

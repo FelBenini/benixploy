@@ -12,7 +12,8 @@ export interface ResolvedError {
 export const KNOWN_PROVISION_ERRORS: KnownErrorEntry[] = [
   {
     pattern: /sudo.*(?:password|not in sudoers)|must be run as root/i,
-    diagnostic: "The SSH user cannot run privileged commands without a password.",
+    diagnostic:
+      "The SSH user cannot run privileged commands without a password.",
     solutions: [
       'Connect as the root user instead (set SSH user to "root").',
       'Grant passwordless sudo to USERNAME: run `echo "USERNAME ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/benisploy` on the target machine.',
