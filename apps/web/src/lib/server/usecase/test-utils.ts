@@ -66,10 +66,8 @@ export class InMemoryServerRepo implements ServerRepository {
       labels: input.labels ?? {},
       hostKeyFingerprint:
         "hostKeyFingerprint" in input
-          ? (input as Record<string, unknown>).hostKeyFingerprint as
-              | string
-              | null
-              | undefined
+          ? ((input as Record<string, unknown>).hostKeyFingerprint as
+              string | null | undefined)
           : null,
       createdAt: input.createdAt,
       updatedAt: input.updatedAt,

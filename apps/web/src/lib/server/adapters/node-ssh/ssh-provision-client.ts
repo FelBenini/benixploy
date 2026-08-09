@@ -26,8 +26,7 @@ const FINGERPRINT_PREFIX = "SHA256:";
 
 export function computeHostFingerprint(hostKey: Buffer): string {
   return (
-    FINGERPRINT_PREFIX +
-    createHash("sha256").update(hostKey).digest("base64")
+    FINGERPRINT_PREFIX + createHash("sha256").update(hostKey).digest("base64")
   );
 }
 

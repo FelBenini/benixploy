@@ -1,6 +1,11 @@
 import { z } from "zod";
 
-export const ServerStatusSchema = z.enum(["online", "offline", "degraded"]);
+export const ServerStatusSchema = z.enum([
+  "online",
+  "offline",
+  "degraded",
+  "provisioning",
+]);
 export type ServerStatus = z.infer<typeof ServerStatusSchema>;
 
 export const ServerSchema = z.object({

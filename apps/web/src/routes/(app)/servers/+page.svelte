@@ -4,8 +4,8 @@
   import { cn } from "$lib/utils.js";
   import Server from "@lucide/svelte/icons/server";
   import Plus from "@lucide/svelte/icons/plus";
-  import MoreHorizontal from "@lucide/svelte/icons/more-horizontal";
   import RefreshCw from "@lucide/svelte/icons/refresh-cw";
+  import ServerCard from "./components/server-card.svelte";
 
   let { data } = $props();
 
@@ -15,18 +15,6 @@
 
   let servers = $state(initialServers());
   let loading = $state(false);
-
-  function formatBytes(bytes: number): string {
-    if (!bytes) return "—";
-    const units = ["B", "KB", "MB", "GB", "TB"];
-    let value = bytes;
-    let i = 0;
-    while (value >= 1024 && i < units.length - 1) {
-      value /= 1024;
-      i++;
-    }
-    return `${value.toFixed(1)} ${units[i]}`;
-  }
 
   async function refresh() {
     loading = true;
@@ -40,19 +28,6 @@
       // ignore
     } finally {
       loading = false;
-    }
-  }
-
-  function statusPillClass(status: string): string {
-    switch (status) {
-      case "online":
-        return "bg-green-950/50 border-green-800 text-green-400";
-      case "degraded":
-        return "bg-amber-950/50 border-amber-800 text-amber-400";
-      case "provisioning":
-        return "bg-blue-950/50 border-blue-800 text-blue-400";
-      default:
-        return "bg-muted/50 border-border text-muted-foreground";
     }
   }
 </script>
@@ -106,83 +81,10 @@
       </Button>
     </div>
   {:else}
-    <div
-      class="rounded-xl bg-background/10 backdrop-blur-sm ring-1 ring-foreground/10 overflow-hidden"
-    >
-      <table class="w-full text-sm">
-        <thead>
-          <tr
-            class="border-b border-border text-left text-xs uppercase tracking-wider text-muted-foreground"
-          >
-            <th class="px-4 py-3 font-medium">Server</th>
-            <th class="px-4 py-3 font-medium">Address</th>
-            <th class="px-4 py-3 font-medium">Status</th>
-            <th class="px-4 py-3 font-medium">Resources</th>
-            <th class="px-4 py-3 font-medium">Last heartbeat</th>
-            <th class="px-4 py-3 font-medium"
-              ><span class="sr-only">Actions</span></th
-            >
-          </tr>
-        </thead>
-        <tbody>
-          {#each servers as server (server.id)}
-            <tr
-              class="border-b border-border/50 last:border-0 hover:bg-muted/30"
-            >
-              <td class="px-4 py-3">
-                <div class="flex items-center gap-2.5">
-                  <div
-                    class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted/50 text-muted-foreground"
-                  >
-                    <Server class="size-4" />
-                  </div>
-                  <div>
-                    <div class="text-foreground font-medium">{server.name}</div>
-                    <div class="text-muted-foreground text-xs">
-                      {server.sshUser}@…
-                    </div>
-                  </div>
-                </div>
-              </td>
-              <td class="px-4 py-3 text-muted-foreground">
-                {server.address}:{server.sshPort}
-              </td>
-              <td class="px-4 py-3">
-                <span
-                  class={cn(
-                    "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium",
-                    statusPillClass(server.status),
-                  )}
-                >
-                  {server.status}
-                </span>
-              </td>
-              <td class="px-4 py-3 text-muted-foreground">
-                {#if server.cpuCores}
-                  {server.cpuCores} vCPU · {formatBytes(server.memoryBytes)} RAM ·
-                  {formatBytes(server.diskBytes)} disk
-                {:else}
-                  —
-                {/if}
-              </td>
-              <td class="px-4 py-3 text-muted-foreground">
-                {server.lastHeartbeatAt
-                  ? new Date(server.lastHeartbeatAt).toLocaleString()
-                  : "never"}
-              </td>
-              <td class="px-4 py-3 text-right">
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label="Server actions"
-                >
-                  <MoreHorizontal />
-                </Button>
-              </td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
+    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      {#each servers as server (server.id)}
+        <ServerCard {server} />
+      {/each}
     </div>
   {/if}
 </div>

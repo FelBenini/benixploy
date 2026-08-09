@@ -63,7 +63,7 @@ function lastEvent(events: ProvisionEvent[]): ProvisionEvent {
 function baseServer(): any {
   return {
     sshPrivateKey: "",
-    status: "offline" as const,
+    status: "provisioning" as const,
     cpuCores: 0,
     memoryBytes: 0,
     diskBytes: 0,
@@ -262,9 +262,9 @@ describe("provisionServer", () => {
     const lastEv = lastEvent(events);
     expect("type" in lastEv && lastEv.type).toBe("error");
 
-    // Server unchanged
+    // Server stays in provisioning state
     const server = await repo.servers.get(orgId, serverId);
-    expect(server!.status).toBe("offline");
+    expect(server!.status).toBe("provisioning");
 
     // No registered node
     const node = await repo.registeredNodes.getByServer(serverId);

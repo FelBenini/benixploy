@@ -17,6 +17,15 @@ interface KnownErrorItem {
   solutions: string[];
 }
 
+interface ResumeServer {
+  id: string;
+  name: string;
+  address: string;
+  sshPort: number;
+  sshUser: string;
+  status: string;
+}
+
 const steps: WizardStep[] = [
     {
       title: "New Server",
@@ -57,6 +66,7 @@ const steps: WizardStep[] = [
     "Verifying heartbeat",
   ];
 
+  let { data } = $props();
   let step = $state(0);
   let name = $state("");
   let address = $state("");
@@ -79,6 +89,28 @@ const steps: WizardStep[] = [
   } | null>(null);
 
   let provisioningServerId = $state<string | null>(null);
+  let resumed = $state(false);
+  let hasAppliedResume = false;
+
+  $effect(() => {
+    const rs = data?.resumeServer as ResumeServer | null;
+    if (!rs || rs.status !== "provisioning" || hasAppliedResume) return;
+    hasAppliedResume = true;
+
+    name = rs.name;
+    address = rs.address;
+    sshPort = String(rs.sshPort);
+    sshUser = rs.sshUser;
+    provisioningServerId = rs.id;
+    createdServer = {
+      id: rs.id,
+      name: rs.name,
+      address: rs.address,
+      status: rs.status,
+    };
+    resumed = true;
+    step = 2;
+  });
 
   const portValid = $derived(
     /^\d+$/.test(sshPort) && Number(sshPort) >= 1 && Number(sshPort) <= 65535,
@@ -237,7 +269,7 @@ const steps: WizardStep[] = [
 </script>
 
 <svelte:head>
-  <title>Add server — Benisploy</title>
+  <title>{resumed ? "Continue setup" : "Add server"} — Benisploy</title>
 </svelte:head>
 
 <div class="flex w-full justify-center h-full">

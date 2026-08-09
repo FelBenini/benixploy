@@ -32,7 +32,7 @@ describe("registerServer", () => {
     expect(server.memoryBytes).toBe(8_000_000_000);
     expect(server.diskBytes).toBe(100_000_000_000);
     expect(server.labels).toEqual({ region: "us-east" });
-    expect(server.status).toBe("offline");
+    expect(server.status).toBe("provisioning");
     expect(server.createdAt).toBeDefined();
     expect(server.updatedAt).toBeDefined();
   });

@@ -156,7 +156,12 @@ export function createProvisionServer(repo: Repository) {
         const execCommandScript = readDeployScript("exec-command.sh");
 
         await uploadFile(auth, installScript, "/tmp/install.sh", tofu.verify);
-        await uploadFile(auth, execCommandScript, "/tmp/exec-command.sh", tofu.verify);
+        await uploadFile(
+          auth,
+          execCommandScript,
+          "/tmp/exec-command.sh",
+          tofu.verify,
+        );
 
         const pubKey = keyPair.publicKey;
 

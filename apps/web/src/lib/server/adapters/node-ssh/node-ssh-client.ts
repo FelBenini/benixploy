@@ -115,9 +115,7 @@ export class SshNodeCommandClient implements NodeCommandClient {
     return server;
   }
 
-  private buildHostVerifier(
-    server: Server,
-  ): (key: Buffer) => boolean {
+  private buildHostVerifier(server: Server): (key: Buffer) => boolean {
     if (this.config.hostVerifier) return this.config.hostVerifier;
 
     const stored = server.hostKeyFingerprint;
