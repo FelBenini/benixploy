@@ -133,7 +133,7 @@ export function createProvisionServer(repo: Repository) {
           );
           const diskResult = await executeCommand(
             client,
-            "df -B1 / | awk 'NR==2 {print $2}'",
+            "lsblk -b -d -n -o SIZE,TYPE | awk '$2 == \"disk\" {sum += $1} END {print sum}'",
           );
           specs = {
             cpuCores: Number.parseInt(cpuResult.stdout.trim()) || 1,
