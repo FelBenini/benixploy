@@ -90,12 +90,16 @@
   </Sidebar.Root>
 
   <Sidebar.Inset>
-    <header
-      class="flex h-16 shrink-0 items-center gap-2 border-b border-border"
-    >
-      <Sidebar.Trigger class="flex md:hidden mr-2 text-xl px-8 h-full" />
-      <span class="text-foreground text-lg font-bold">Dashboard</span>
-    </header>
+<header class="sticky top-0 z-50 flex md:hidden shrink-0 items-center p-2 backdrop-blur-lg shadow">
+  <Sidebar.Trigger
+    class="mr-2 border border-border p-6 text-xl"
+  />
+
+  <img
+    src="/logo.svg"
+    class="absolute left-1/2 w-1/2 -translate-x-1/2"
+  />
+</header>
     <div class="bg-background flex flex-1 flex-col">
       {@render children()}
     </div>

@@ -12,23 +12,23 @@
   import type { WizardStep } from "$lib/components/ui/wizard/index.js";
   import { ArrowLeft } from "@lucide/svelte";
 
-interface KnownErrorItem {
-  diagnostic: string;
-  solutions: string[];
-}
+  interface KnownErrorItem {
+    diagnostic: string;
+    solutions: string[];
+  }
 
-interface ResumeServer {
-  id: string;
-  name: string;
-  address: string;
-  sshPort: number;
-  sshUser: string;
-  status: string;
-}
+  interface ResumeServer {
+    id: string;
+    name: string;
+    address: string;
+    sshPort: number;
+    sshUser: string;
+    status: string;
+  }
 
-const steps: WizardStep[] = [
+  const steps: WizardStep[] = [
     {
-      title: "New Server",
+      title: "Setup",
       description: "Choose where Benisploy should be installed.",
       icon: Globe,
     },
@@ -281,7 +281,7 @@ const steps: WizardStep[] = [
 
   function nextLabel(): string {
     if (step === 3) {
-      return installState === "done" ? "Continue" : "Installing…";
+      return installState !== "done" ? "Installing…" : "Continue";
     }
     if (step === 4) return "Go to Servers";
     if (step === 2) return "Install";
@@ -347,7 +347,9 @@ const steps: WizardStep[] = [
       nextLabel={nextLabel()}
       loading={step === 3 && installState === "running"}
       nextDisabled={nextDisabled()}
-      hideBack={step === 0 || step === 3 || step === 4}
+      hideBack={step === 0 ||
+        (step === 3 && installState === "running") ||
+        step === 4}
       onnext={step === 4 ? () => goto(resolve("/servers")) : undefined}
       class="shrink-0"
     />

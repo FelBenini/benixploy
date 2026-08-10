@@ -37,10 +37,10 @@
 </svelte:head>
 
 <div class="flex flex-col md:p-6 p-3 gap-6">
-  <div class="flex items-start justify-between gap-4">
+  <div class="flex items-center justify-between gap-4">
     <div>
       <h1 class="text-foreground text-lg font-semibold">Servers</h1>
-      <p class="text-muted-foreground text-sm">
+      <p class="text-muted-foreground hidden md:block text-sm">
         The machines your applications run on.
       </p>
     </div>
@@ -56,9 +56,10 @@
         <Plus data-icon="inline-start" />
         Add server
       </Button>
+
     </div>
   </div>
-
+  <p class="text-muted-foreground md:hidden text-sm">The machines your application run on.</p>
   {#if servers.length === 0}
     <div
       class="flex flex-col items-center justify-center gap-3 rounded-xl bg-background/10 backdrop-blur-sm ring-1 ring-foreground/10 px-6 py-16 text-center"
