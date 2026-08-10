@@ -137,6 +137,22 @@ export class InMemoryServerRepo implements ServerRepository {
       s.updatedAt = new Date().toISOString();
     }
   }
+
+  async updateConnection(
+    orgId: string,
+    id: string,
+    data: { name?: string; address?: string; sshPort?: number },
+  ): Promise<Server> {
+    const s = this.orgMap(orgId).get(id);
+    if (!s) {
+      throw new Error("Server not found");
+    }
+    if (data.name !== undefined) s.name = data.name;
+    if (data.address !== undefined) s.address = data.address;
+    if (data.sshPort !== undefined) s.sshPort = data.sshPort;
+    s.updatedAt = new Date().toISOString();
+    return s;
+  }
 }
 
 export class InMemoryAppRepo implements AppRepository {

@@ -83,6 +83,14 @@ export const ProvisionServerInputSchema = z.object({
 
 export type ProvisionServerInput = z.infer<typeof ProvisionServerInputSchema>;
 
+export const UpdateServerInputSchema = z.object({
+  name: z.string().min(1).max(128).optional(),
+  address: z.string().min(1).optional(),
+  sshPort: z.number().int().positive().max(65535).optional(),
+});
+
+export type UpdateServerInput = z.infer<typeof UpdateServerInputSchema>;
+
 export type Server = z.infer<typeof ServerSchema>;
 
 export const ServerStatusReportSchema = z.object({

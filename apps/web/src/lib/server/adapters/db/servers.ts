@@ -140,4 +140,23 @@ export class DrizzleServerRepository implements ServerRepository {
       })
       .where(and(eq(servers.id, id), eq(servers.orgId, orgId)));
   }
+
+  async updateConnection(
+    orgId: string,
+    id: string,
+    data: { name?: string; address?: string; sshPort?: number },
+  ): Promise<Server> {
+    const updates: Record<string, unknown> = { updatedAt: new Date() };
+    if (data.name !== undefined) updates.name = data.name;
+    if (data.address !== undefined) updates.address = data.address;
+    if (data.sshPort !== undefined) updates.sshPort = data.sshPort;
+
+    const [row] = await this.db
+      .update(servers)
+      .set(updates)
+      .where(and(eq(servers.id, id), eq(servers.orgId, orgId)))
+      .returning();
+
+    return toDomain(row, this.decryptPrivateKey);
+  }
 }

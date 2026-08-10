@@ -160,6 +160,33 @@ const steps: WizardStep[] = [
     return { id: s.id, name: s.name, address: s.address, status: s.status };
   }
 
+  async function updateServer(): Promise<void> {
+    if (!provisioningServerId) return;
+    const res = await fetch(`/api/servers/${provisioningServerId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: name.trim(),
+        address: address.trim(),
+        sshPort: Number(sshPort),
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.json();
+      throw new Error(
+        (body as { error?: string }).error ?? "Failed to update server",
+      );
+    }
+    const body = await res.json();
+    const s = body.data;
+    createdServer = {
+      id: s.id,
+      name: s.name,
+      address: s.address,
+      status: s.status,
+    };
+  }
+
   async function startInstall() {
     error = "";
     knownErrors = [];
@@ -171,6 +198,8 @@ const steps: WizardStep[] = [
       if (!provisioningServerId) {
         createdServer = await createServer();
         provisioningServerId = createdServer.id;
+      } else {
+        await updateServer();
       }
       await runProvisioning(provisioningServerId);
       activePhase = -1;

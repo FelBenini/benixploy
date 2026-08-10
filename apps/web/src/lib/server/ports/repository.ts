@@ -66,6 +66,15 @@ export interface ServerRepository {
       hostKeyFingerprint?: string | null;
     },
   ): Promise<void>;
+  updateConnection(
+    orgId: string,
+    id: string,
+    data: {
+      name?: string;
+      address?: string;
+      sshPort?: number;
+    },
+  ): Promise<Server>;
 }
 
 export interface AppRepository {
