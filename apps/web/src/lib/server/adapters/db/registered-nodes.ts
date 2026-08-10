@@ -50,6 +50,16 @@ export class DrizzleRegisteredNodeRepository {
     return toDomain(row);
   }
 
+  async getByBearerToken(token: string): Promise<RegisteredNode | null> {
+    const [row] = await this.db
+      .select()
+      .from(registeredNodes)
+      .where(eq(registeredNodes.monitorBearerToken, token));
+
+    if (!row) return null;
+    return toDomain(row);
+  }
+
   async updateStatus(serverId: string, status: string): Promise<void> {
     await this.db
       .update(registeredNodes)

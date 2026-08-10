@@ -52,6 +52,7 @@ export interface ServerRepository {
   list(orgId: string): Promise<Server[]>;
   updateStatus(orgId: string, id: string, status: string): Promise<void>;
   updateHeartbeat(orgId: string, id: string): Promise<void>;
+  touchHeartbeat(serverId: string): Promise<void>;
   provision(
     orgId: string,
     id: string,
@@ -157,6 +158,7 @@ export interface RegisteredNodeRepository {
     input: CreateRegisteredNodeInput & { id: string },
   ): Promise<RegisteredNode>;
   getByServer(serverId: string): Promise<RegisteredNode | null>;
+  getByBearerToken(token: string): Promise<RegisteredNode | null>;
   updateStatus(serverId: string, status: string): Promise<void>;
   delete(serverId: string): Promise<void>;
 }

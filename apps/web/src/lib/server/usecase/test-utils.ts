@@ -110,6 +110,18 @@ export class InMemoryServerRepo implements ServerRepository {
     }
   }
 
+  async touchHeartbeat(serverId: string): Promise<void> {
+    for (const store of this.data.values()) {
+      const s = store.get(serverId);
+      if (s) {
+        s.lastHeartbeatAt = new Date().toISOString();
+        s.status = "online";
+        s.updatedAt = new Date().toISOString();
+        return;
+      }
+    }
+  }
+
   async provision(
     orgId: string,
     id: string,
@@ -420,6 +432,13 @@ export class InMemoryRegisteredNodeRepo implements RegisteredNodeRepository {
 
   async getByServer(serverId: string): Promise<RegisteredNode | null> {
     return this.data.get(serverId) ?? null;
+  }
+
+  async getByBearerToken(token: string): Promise<RegisteredNode | null> {
+    for (const node of this.data.values()) {
+      if (node.monitorBearerToken === token) return node;
+    }
+    return null;
   }
 
   async updateStatus(serverId: string, status: string): Promise<void> {

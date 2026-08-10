@@ -109,6 +109,14 @@ export class DrizzleServerRepository implements ServerRepository {
       .where(and(eq(servers.id, id), eq(servers.orgId, orgId)));
   }
 
+  async touchHeartbeat(serverId: string): Promise<void> {
+    const now = new Date();
+    await this.db
+      .update(servers)
+      .set({ status: "online", lastHeartbeatAt: now, updatedAt: now })
+      .where(eq(servers.id, serverId));
+  }
+
   async provision(
     orgId: string,
     id: string,

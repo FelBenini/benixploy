@@ -60,6 +60,17 @@ const staleSweepInterval = setInterval(async () => {
 }, 30_000);
 (staleSweepInterval as { unref?: () => void }).unref?.();
 
+// Retention cleanup: prune node_events older than 24h every hour
+const retentionInterval = setInterval(async () => {
+  try {
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    await repo.nodeEvents.pruneEvents(cutoff);
+  } catch (err) {
+    console.error("node_events retention sweep failed:", err);
+  }
+}, 3600_000);
+(retentionInterval as { unref?: () => void }).unref?.();
+
 export const app = {
   db,
   repo,

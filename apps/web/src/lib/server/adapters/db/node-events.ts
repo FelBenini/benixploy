@@ -1,4 +1,4 @@
-import { eq, desc, and, gt } from "drizzle-orm";
+import { eq, desc, and, lt, gt } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import * as schema from "../../db/schema";
 import { nodeEvents, nodeStats } from "../../db/schema/node-events";
@@ -134,6 +134,6 @@ export class DrizzleNodeEventRepository implements NodeEventRepository {
   async pruneEvents(olderThan: string): Promise<void> {
     await this.db
       .delete(nodeEvents)
-      .where(gt(nodeEvents.receivedAt, new Date(olderThan)));
+      .where(lt(nodeEvents.receivedAt, new Date(olderThan)));
   }
 }
