@@ -98,6 +98,7 @@
   <img
     src="/logo.svg"
     class="absolute left-1/2 w-1/2 -translate-x-1/2"
+    alt="benisploy"
   />
 </header>
     <div class="bg-background flex flex-1 flex-col">
