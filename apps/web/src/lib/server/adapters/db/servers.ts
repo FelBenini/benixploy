@@ -24,6 +24,7 @@ function toDomain(
     memoryBytes: row.memoryBytes,
     diskBytes: row.diskBytes,
     labels: row.labels as Record<string, string>,
+    hostKeyFingerprint: row.hostKeyFingerprint,
     lastHeartbeatAt: row.lastHeartbeatAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
@@ -55,6 +56,10 @@ export class DrizzleServerRepository implements ServerRepository {
         memoryBytes: input.memoryBytes,
         diskBytes: input.diskBytes,
         labels: input.labels,
+        hostKeyFingerprint: input.hostKeyFingerprint ?? null,
+        lastHeartbeatAt: input.lastHeartbeatAt
+          ? new Date(input.lastHeartbeatAt)
+          : null,
         createdAt: new Date(input.createdAt),
         updatedAt: new Date(input.updatedAt),
       })
@@ -102,5 +107,56 @@ export class DrizzleServerRepository implements ServerRepository {
       .update(servers)
       .set({ status: "online", lastHeartbeatAt: now, updatedAt: now })
       .where(and(eq(servers.id, id), eq(servers.orgId, orgId)));
+  }
+
+  async provision(
+    orgId: string,
+    id: string,
+    data: {
+      sshPrivateKey: string;
+      sshUser: string;
+      cpuCores: number;
+      memoryBytes: number;
+      diskBytes: number;
+      status: string;
+      lastHeartbeatAt: string;
+      hostKeyFingerprint?: string | null;
+    },
+  ): Promise<void> {
+    await this.db
+      .update(servers)
+      .set({
+        sshPrivateKey: this.encryptPrivateKey
+          ? this.encryptPrivateKey(data.sshPrivateKey)
+          : data.sshPrivateKey,
+        sshUser: data.sshUser,
+        cpuCores: data.cpuCores,
+        memoryBytes: data.memoryBytes,
+        diskBytes: data.diskBytes,
+        status: data.status,
+        lastHeartbeatAt: new Date(data.lastHeartbeatAt),
+        hostKeyFingerprint: data.hostKeyFingerprint ?? null,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(servers.id, id), eq(servers.orgId, orgId)));
+  }
+
+  async updateConnection(
+    orgId: string,
+    id: string,
+    data: { name?: string; address?: string; sshPort?: number },
+  ): Promise<Server> {
+    const updates: Record<string, unknown> = { updatedAt: new Date() };
+    if (data.name !== undefined) updates.name = data.name;
+    if (data.address !== undefined) updates.address = data.address;
+    if (data.sshPort !== undefined) updates.sshPort = data.sshPort;
+
+    const [row] = await this.db
+      .update(servers)
+      .set(updates)
+      .where(and(eq(servers.id, id), eq(servers.orgId, orgId)))
+      .returning();
+
+    return toDomain(row, this.decryptPrivateKey);
   }
 }

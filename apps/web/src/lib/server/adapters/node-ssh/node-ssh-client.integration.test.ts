@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { GenericContainer, type StartedTestContainer } from "testcontainers";
 import { generateKeyPairSync } from "crypto";
-import { utils } from "ssh2";
+import { utils, Client } from "ssh2";
 import { SshNodeCommandClient } from "./node-ssh-client";
+import { computeHostFingerprint } from "./ssh-provision-client";
 import type { Server } from "../../domain/server";
 
 const FORCED_SCRIPT = [
@@ -83,6 +84,28 @@ describe("SshNodeCommandClient integration", () => {
       "/opt/benisploy",
     ]);
 
+    // Capture the container's host key fingerprint so TOFU verification passes
+    const hostFingerprint = await new Promise<string>((resolve, reject) => {
+      let captured = "";
+      const probe = new Client();
+      probe.on("ready", () => {
+        probe.end();
+        resolve(captured);
+      });
+      probe.on("error", reject);
+      probe.connect({
+        host,
+        port,
+        username: "benisploy",
+        privateKey: keyPair.privateKey,
+        readyTimeout: 15_000,
+        hostVerifier: (key: Buffer) => {
+          captured = computeHostFingerprint(key);
+          return true;
+        },
+      });
+    });
+
     server = {
       id: "integration-srv",
       name: "integration-test",
@@ -95,6 +118,7 @@ describe("SshNodeCommandClient integration", () => {
       memoryBytes: 4_000_000_000,
       diskBytes: 50_000_000_000,
       labels: {},
+      hostKeyFingerprint: hostFingerprint,
       createdAt: "2025-01-01T00:00:00.000Z",
       updatedAt: "2025-01-01T00:00:00.000Z",
     };

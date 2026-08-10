@@ -1,8 +1,8 @@
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import type { DbExecutor, OrgRepository } from "../../ports/repository";
 import type { Org } from "../../domain/org";
 import type { DrizzleDB } from "./drizzle-repository";
-import { orgs } from "../../db/schema";
+import { orgMemberships, orgs } from "../../db/schema";
 
 function toDomain(row: typeof orgs.$inferSelect): Org {
   return {
@@ -44,5 +44,17 @@ export class DrizzleOrgRepository implements OrgRepository {
     if (ids.length === 0) return [];
     const rows = await this.db.select().from(orgs).where(inArray(orgs.id, ids));
     return rows.map(toDomain);
+  }
+
+  async isUserFromOrg(userId: string, orgId: string): Promise<boolean> {
+    if (!userId || !orgId) return false;
+    const [row] = await this.db
+      .select()
+      .from(orgMemberships)
+      .where(
+        and(eq(orgMemberships.userId, userId), eq(orgMemberships.orgId, orgId)),
+      )
+      .limit(1);
+    return row !== undefined;
   }
 }

@@ -64,6 +64,11 @@ export class InMemoryServerRepo implements ServerRepository {
       memoryBytes: input.memoryBytes,
       diskBytes: input.diskBytes,
       labels: input.labels ?? {},
+      hostKeyFingerprint:
+        "hostKeyFingerprint" in input
+          ? ((input as Record<string, unknown>).hostKeyFingerprint as
+              string | null | undefined)
+          : null,
       createdAt: input.createdAt,
       updatedAt: input.updatedAt,
       lastHeartbeatAt: input.lastHeartbeatAt,
@@ -103,6 +108,50 @@ export class InMemoryServerRepo implements ServerRepository {
       s.status = "online";
       s.updatedAt = new Date().toISOString();
     }
+  }
+
+  async provision(
+    orgId: string,
+    id: string,
+    data: {
+      sshPrivateKey: string;
+      sshUser: string;
+      cpuCores: number;
+      memoryBytes: number;
+      diskBytes: number;
+      status: string;
+      lastHeartbeatAt: string;
+      hostKeyFingerprint?: string | null;
+    },
+  ): Promise<void> {
+    const s = this.orgMap(orgId).get(id);
+    if (s) {
+      s.sshPrivateKey = data.sshPrivateKey;
+      s.sshUser = data.sshUser;
+      s.cpuCores = data.cpuCores;
+      s.memoryBytes = data.memoryBytes;
+      s.diskBytes = data.diskBytes;
+      s.status = data.status as Server["status"];
+      s.lastHeartbeatAt = data.lastHeartbeatAt;
+      s.hostKeyFingerprint = data.hostKeyFingerprint ?? null;
+      s.updatedAt = new Date().toISOString();
+    }
+  }
+
+  async updateConnection(
+    orgId: string,
+    id: string,
+    data: { name?: string; address?: string; sshPort?: number },
+  ): Promise<Server> {
+    const s = this.orgMap(orgId).get(id);
+    if (!s) {
+      throw new Error("Server not found");
+    }
+    if (data.name !== undefined) s.name = data.name;
+    if (data.address !== undefined) s.address = data.address;
+    if (data.sshPort !== undefined) s.sshPort = data.sshPort;
+    s.updatedAt = new Date().toISOString();
+    return s;
   }
 }
 
@@ -261,6 +310,8 @@ export class InMemorySystemSetupRepo implements SystemSetupRepository {
 
 export class InMemoryOrgRepo implements OrgRepository {
   private data = new Map<string, Org>();
+  constructor(private memberships?: InMemoryMembershipRepo) {}
+
   async create(_db: unknown, org: Org): Promise<Org> {
     this.data.set(org.id, org);
     return org;
@@ -272,6 +323,12 @@ export class InMemoryOrgRepo implements OrgRepository {
     return ids
       .map((id) => this.data.get(id))
       .filter((o): o is Org => o !== undefined);
+  }
+
+  async isUserFromOrg(userId: string, orgId: string): Promise<boolean> {
+    if (!this.memberships || !userId || !orgId) return false;
+    const userMemberships = await this.memberships.findByUserIdAll(userId);
+    return userMemberships.some((m) => m.orgId === orgId);
   }
 }
 
@@ -447,8 +504,8 @@ export class InMemoryRepository implements Repository {
     this.users = new InMemoryUserRepo();
     this.sessions = new InMemorySessionRepo();
     this.systemSetup = new InMemorySystemSetupRepo();
-    this.orgs = new InMemoryOrgRepo();
     this.memberships = new InMemoryMembershipRepo();
+    this.orgs = new InMemoryOrgRepo(this.memberships);
     this.nodeEvents = new InMemoryNodeEventRepo();
     this.registeredNodes = new InMemoryRegisteredNodeRepo();
     this.registrationTokens = new InMemoryRegistrationTokenRepo();

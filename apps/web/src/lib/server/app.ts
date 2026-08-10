@@ -9,6 +9,7 @@ import { createRegisterServer } from "$lib/server/usecase/register-server";
 import { createDeployApp } from "$lib/server/usecase/deploy-app";
 import { createListApps } from "$lib/server/usecase/list-apps";
 import { createGetApp } from "$lib/server/usecase/get-app";
+import { createProvisionServer } from "$lib/server/usecase/provision-server";
 import {
   createSession,
   validateSessionToken,
@@ -16,15 +17,14 @@ import {
 } from "$lib/server/auth/session";
 import { hashPassword, verifyPassword } from "$lib/server/auth/password";
 
-import { env } from "$env/dynamic/private";
+import { ENCRYPTION_KEY } from "$app/env/private";
 
-const encryptionKey = env.ENCRYPTION_KEY || "";
-const hasEncryption = encryptionKey.length > 0;
+const hasEncryption = ENCRYPTION_KEY != null && ENCRYPTION_KEY.length > 0;
 const encryptKey = hasEncryption
-  ? (s: string) => encrypt(s, encryptionKey)
+  ? (s: string) => encrypt(s, ENCRYPTION_KEY as string)
   : undefined;
 const decryptKey = hasEncryption
-  ? (s: string) => decrypt(s, encryptionKey)
+  ? (s: string) => decrypt(s, ENCRYPTION_KEY as string)
   : undefined;
 const repo = new DrizzleRepository(db, encryptKey, decryptKey);
 
@@ -69,6 +69,7 @@ export const app = {
   },
   useCases: {
     registerServer: createRegisterServer(repo),
+    provisionServer: createProvisionServer(repo),
     deployApp: createDeployApp(repo, nodeSshClient),
     listApps: createListApps(repo),
     getApp: createGetApp(repo),

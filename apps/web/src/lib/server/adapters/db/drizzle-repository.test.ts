@@ -70,7 +70,7 @@ describe("DrizzleRepository integration", () => {
 
     expect(server.id).toBeDefined();
     expect(server.name).toBe("integration-server");
-    expect(server.status).toBe("offline");
+    expect(server.status).toBe("provisioning");
 
     const stored = await repo.servers.get(ORG, server.id);
     expect(stored).not.toBeNull();

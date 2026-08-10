@@ -1,6 +1,11 @@
 import { z } from "zod";
 
-export const ServerStatusSchema = z.enum(["online", "offline", "degraded"]);
+export const ServerStatusSchema = z.enum([
+  "online",
+  "offline",
+  "degraded",
+  "provisioning",
+]);
 export type ServerStatus = z.infer<typeof ServerStatusSchema>;
 
 export const ServerSchema = z.object({
@@ -31,6 +36,7 @@ export const ServerSchema = z.object({
     .default({})
     .describe("Arbitrary key/value metadata"),
   lastHeartbeatAt: z.string().datetime().nullable().optional(),
+  hostKeyFingerprint: z.string().nullable().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
@@ -38,10 +44,23 @@ export const ServerSchema = z.object({
 export const CreateServerInputSchema = ServerSchema.pick({
   name: true,
   address: true,
-  cpuCores: true,
-  memoryBytes: true,
-  diskBytes: true,
 }).extend({
+  cpuCores: z
+    .number()
+    .int()
+    .nonnegative()
+    .default(0)
+    .describe("Detected at registration when not provided"),
+  memoryBytes: z
+    .number()
+    .nonnegative()
+    .default(0)
+    .describe("Detected at registration when not provided"),
+  diskBytes: z
+    .number()
+    .nonnegative()
+    .default(0)
+    .describe("Detected at registration when not provided"),
   labels: z.record(z.string(), z.string()).optional(),
   sshPort: z
     .number()
@@ -54,6 +73,23 @@ export const CreateServerInputSchema = ServerSchema.pick({
 });
 
 export type CreateServerInput = z.infer<typeof CreateServerInputSchema>;
+
+export const ProvisionServerInputSchema = z.object({
+  accessMethod: z.enum(["key", "password"]),
+  sshUser: z.string().min(1).default("root"),
+  privateKey: z.string().optional(),
+  password: z.string().optional(),
+});
+
+export type ProvisionServerInput = z.infer<typeof ProvisionServerInputSchema>;
+
+export const UpdateServerInputSchema = z.object({
+  name: z.string().min(1).max(128).optional(),
+  address: z.string().min(1).optional(),
+  sshPort: z.number().int().positive().max(65535).optional(),
+});
+
+export type UpdateServerInput = z.infer<typeof UpdateServerInputSchema>;
 
 export type Server = z.infer<typeof ServerSchema>;
 

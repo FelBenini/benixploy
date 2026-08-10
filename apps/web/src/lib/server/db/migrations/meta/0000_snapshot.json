@@ -1,5 +1,5 @@
 {
-  "id": "901c5c11-d1b5-45c8-b76f-b0a1c6b27a24",
+  "id": "1a376bb4-5c64-4614-8bda-bf33a534b804",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -1387,6 +1387,12 @@
           "notNull": true,
           "default": "'{}'::jsonb"
         },
+        "host_key_fingerprint": {
+          "name": "host_key_fingerprint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "lastHeartbeatAt": {
           "name": "lastHeartbeatAt",
           "type": "timestamp with time zone",
@@ -1623,6 +1629,18 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "username": {
+          "name": "username",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "avatar_url": {
+          "name": "avatar_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "createdAt": {
           "name": "createdAt",

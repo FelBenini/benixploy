@@ -5,6 +5,7 @@
   import LayoutDashboard from "@lucide/svelte/icons/layout-dashboard";
   import Server from "@lucide/svelte/icons/server";
   import Settings from "@lucide/svelte/icons/settings";
+  import Boxes from "@lucide/svelte/icons/boxes";
   import { page } from "$app/state";
 
   let { data, children } = $props();
@@ -28,9 +29,14 @@
       icon: LayoutDashboard,
     },
     {
+      title: "Servers",
+      url: "/servers",
+      icon: Server,
+    },
+    {
       title: "Apps",
       url: "/apps",
-      icon: Server,
+      icon: Boxes,
     },
     {
       title: "Settings",
@@ -60,7 +66,8 @@
                   variant="ghost"
                   size="lg"
                   class="text-foreground/80 data-active:outline-solid data-active:outline-1 outline-border data-active:bg-[linear-gradient(var(--border),transparent)] rounded-[2px]"
-                  isActive={page.url.pathname === item.url}
+                  isActive={page.url.pathname.split("/")[1] ===
+                    item.url.split("/")[1]}
                 >
                   {#snippet child({ props })}
                     <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
@@ -83,13 +90,18 @@
   </Sidebar.Root>
 
   <Sidebar.Inset>
-    <header
-      class="flex h-16 shrink-0 items-center gap-2 border-b border-border"
-    >
-      <Sidebar.Trigger class="flex md:hidden mr-2 text-xl px-8 h-full" />
-      <span class="text-foreground text-lg font-bold">Dashboard</span>
-    </header>
-    <div class="flex flex-1 flex-col gap-6 p-6">
+<header class="sticky top-0 z-50 flex md:hidden shrink-0 items-center p-2 backdrop-blur-lg shadow">
+  <Sidebar.Trigger
+    class="mr-2 border border-border p-6 text-xl"
+  />
+
+  <img
+    src="/logo.svg"
+    class="absolute left-1/2 w-1/2 -translate-x-1/2"
+    alt="benisploy"
+  />
+</header>
+    <div class="bg-background flex flex-1 flex-col">
       {@render children()}
     </div>
   </Sidebar.Inset>

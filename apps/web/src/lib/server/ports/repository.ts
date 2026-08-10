@@ -52,6 +52,29 @@ export interface ServerRepository {
   list(orgId: string): Promise<Server[]>;
   updateStatus(orgId: string, id: string, status: string): Promise<void>;
   updateHeartbeat(orgId: string, id: string): Promise<void>;
+  provision(
+    orgId: string,
+    id: string,
+    data: {
+      sshPrivateKey: string;
+      sshUser: string;
+      cpuCores: number;
+      memoryBytes: number;
+      diskBytes: number;
+      status: string;
+      lastHeartbeatAt: string;
+      hostKeyFingerprint?: string | null;
+    },
+  ): Promise<void>;
+  updateConnection(
+    orgId: string,
+    id: string,
+    data: {
+      name?: string;
+      address?: string;
+      sshPort?: number;
+    },
+  ): Promise<Server>;
 }
 
 export interface AppRepository {
@@ -88,6 +111,7 @@ export interface OrgRepository {
   create(db: DbExecutor, org: Org): Promise<Org>;
   getById(id: string): Promise<Org | null>;
   listByIds(ids: string[]): Promise<Org[]>;
+  isUserFromOrg(userId: string, orgId: string): Promise<boolean>;
 }
 
 export interface OrgMembershipRepository {

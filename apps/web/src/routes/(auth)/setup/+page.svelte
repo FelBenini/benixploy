@@ -106,11 +106,7 @@
 >
   <BackgroundGrid />
   <div class="flex-col justify-center items-center max-w-md w-full mx-4">
-    <img
-      src="/logo.svg"
-      alt="benisploy"
-      class="mx-auto mb-[-15.5%] md:mb-[-12.5%]"
-    />
+    <img src="/logo.svg" alt="benisploy" class="mx-auto mb-1 max-w-xs w-full" />
     <Wizard.Root {steps} bind:step class="w-full max-w-md rounded mx-auto z-99">
       <Wizard.Header />
       <Wizard.Steps />

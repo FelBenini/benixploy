@@ -26,6 +26,7 @@ export const servers = pgTable(
     memoryBytes: bigint({ mode: "number" }).notNull(),
     diskBytes: bigint({ mode: "number" }).notNull(),
     labels: jsonb().notNull().default({}),
+    hostKeyFingerprint: text("host_key_fingerprint"),
     lastHeartbeatAt: timestamp({ withTimezone: true }),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
