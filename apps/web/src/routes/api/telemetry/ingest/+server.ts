@@ -34,7 +34,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
   const parsed = AnyMessageSchema.safeParse(body);
   if (!parsed.success) {
-    console.log(parsed.error)
+    console.log(parsed.error);
     return json(
       { error: "Invalid message", details: parsed.error.issues },
       { status: 400 },

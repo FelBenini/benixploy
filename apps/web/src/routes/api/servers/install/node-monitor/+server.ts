@@ -20,9 +20,12 @@ export const GET: RequestHandler = async ({ url }) => {
   const arch = url.searchParams.get("arch");
 
   if (!arch || !SUPPORTED_ARCHES.includes(arch as Arch)) {
-    return new Response("Invalid or missing arch. Supported: amd64, arm64, armv7", {
-      status: 400,
-    });
+    return new Response(
+      "Invalid or missing arch. Supported: amd64, arm64, armv7",
+      {
+        status: 400,
+      },
+    );
   }
 
   const filePath = join(resolveBinaryDir(), `node-monitor-${arch}`);

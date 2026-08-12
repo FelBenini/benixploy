@@ -211,9 +211,7 @@ export async function* streamCommandOutput(
 
   const timer = setTimeout(() => {
     if (closed) return;
-    execError = new ProvisionSshError(
-      `Command timed out after ${timeoutMs}ms`,
-    );
+    execError = new ProvisionSshError(`Command timed out after ${timeoutMs}ms`);
     const w = waiters.shift();
     w?.();
   }, timeoutMs);

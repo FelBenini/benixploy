@@ -235,9 +235,7 @@ export function createProvisionServer(repo: Repository) {
             err instanceof ProvisionSshError ? (err.stdout ?? "") : "";
           yield* flushMarkers();
 
-          const failedPhase = [2, 3, 4, 5, 6, 7].find(
-            (p) => !stepDone.has(p),
-          );
+          const failedPhase = [2, 3, 4, 5, 6, 7].find((p) => !stepDone.has(p));
           const message =
             err instanceof Error ? err.message : "Provisioning failed";
           yield {
@@ -261,10 +259,7 @@ export function createProvisionServer(repo: Repository) {
         for (let attempt = 0; attempt < 5; attempt++) {
           await new Promise((resolve) => setTimeout(resolve, 3000));
           const updated = await repo.servers.get(orgId, serverId);
-          if (
-            updated?.status === "online" &&
-            updated.lastHeartbeatAt != null
-          ) {
+          if (updated?.status === "online" && updated.lastHeartbeatAt != null) {
             heartbeatReceived = true;
             break;
           }
