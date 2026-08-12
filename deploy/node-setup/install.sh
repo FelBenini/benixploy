@@ -55,6 +55,10 @@ log()  { printf '[benisploy-setup] %s\n' "$*"; }
 err()  { printf '[benisploy-setup] ERROR: %s\n' "$*" >&2; }
 die()  { err "$@"; exit 1; }
 
+# Machine-readable progress markers, parsed by the control plane to update
+# the install wizard's phase ticks live. Print AFTER each step succeeds.
+step_done() { printf '[benisploy-setup] STEP_DONE:%s\n' "$1"; }
+
 require_root() {
     if [ "$(id -u)" -ne 0 ]; then
         die "This script must be run as root (sudo)."
@@ -261,6 +265,13 @@ install_systemd_service() {
         return 0
     fi
 
+    # Containers / non-systemd environments: systemctl may exist while PID 1
+    # isn't systemd. Detect and skip instead of failing the whole provision.
+    if [ "$(cat /proc/1/comm 2>/dev/null)" != "systemd" ]; then
+        log "systemd is not running as PID 1 — skipping service installation."
+        return 0
+    fi
+
     cat > "$MONITOR_SERVICE_FILE" <<SERVICEEOF
 [Unit]
 Description=benisploy node monitor
@@ -353,16 +364,25 @@ main() {
     echo ""
 
     install_docker
+    step_done "docker"
+
     setup_user_and_dirs
+    step_done "user"
+
     install_forced_command
+    step_done "forced_command"
 
     if [ -n "$EXEC_KEY" ] || [ -n "$SFTP_KEY" ]; then
         setup_ssh
+        step_done "ssh"
     fi
 
     if [ -n "$BEARER_TOKEN" ]; then
         install_node_monitor
+        step_done "node_monitor"
+
         install_systemd_service
+        step_done "systemd"
     else
         log "No bearer token provided — skipping node-monitor installation."
     fi

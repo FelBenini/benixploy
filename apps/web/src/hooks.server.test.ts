@@ -114,6 +114,21 @@ describe("handle hook", () => {
     expect(response.status).toBe(200);
   });
 
+  it("skips CSRF check for the telemetry ingest endpoint", async () => {
+    const event = createMockEvent();
+    const url = new URL("http://localhost:5173/api/telemetry/ingest");
+    event.url = url;
+    event.request = new Request(url, { method: "POST" });
+    event.request.headers.set("Host", "localhost:5173");
+
+    const resolve = vi.fn().mockResolvedValue(new Response("ok"));
+
+    const response = await handle({ event, resolve });
+
+    expect(resolve).toHaveBeenCalled();
+    expect(response.status).toBe(200);
+  });
+
   it("resolves orgId from session membership", async () => {
     const event = createMockEvent();
     const mockSession = {

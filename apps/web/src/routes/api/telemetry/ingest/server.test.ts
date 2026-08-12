@@ -306,6 +306,29 @@ describe("POST /api/telemetry/ingest", () => {
       expect(mockTouchHeartbeat).toHaveBeenCalledWith("server-1");
       expect(mockInsertEvent).not.toHaveBeenCalled();
     });
+
+    it("normalizes null containerStates to an empty array", async () => {
+      mockGetByBearerToken.mockResolvedValue(activeNode);
+      mockInsertStats.mockResolvedValue({ id: "stats-2" });
+      mockTouchHeartbeat.mockResolvedValue(undefined);
+
+      const event = createRequestEvent({
+        authorization: "Bearer bearer-token-active",
+        body: {
+          ...statsPushMessage,
+          payload: { ...statsPushMessage.payload, containerStates: null },
+        },
+      });
+      const response = await POST(event);
+
+      expect(response.status).toBe(202);
+      expect(mockInsertStats).toHaveBeenCalledWith(
+        "server-1",
+        expect.objectContaining({
+          containerStates: [],
+        }),
+      );
+    });
   });
 
   // ── event_push ────────────────────────────────────────────────

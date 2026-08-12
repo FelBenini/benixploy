@@ -4,9 +4,18 @@ import { SESSION_COOKIE } from "$lib/server/auth/session";
 
 export const ACTIVE_ORG_COOKIE = "active_org_id";
 
+// Machine-to-machine endpoints that authenticate via bearer tokens (not
+// cookies), so the Origin/Host CSRF check doesn't apply. The node monitor
+// pushes telemetry here without an Origin header.
+const NO_CSRF_PATHS = new Set(["/api/telemetry/ingest"]);
+
 export const handle: Handle = async ({ event, resolve }) => {
   // CSRF protection
-  if (event.request.method !== "GET" && event.request.method !== "HEAD") {
+  if (
+    event.request.method !== "GET" &&
+    event.request.method !== "HEAD" &&
+    !NO_CSRF_PATHS.has(event.url.pathname)
+  ) {
     const origin = event.request.headers.get("Origin");
     const host = event.request.headers.get("Host");
     if (!origin || !host) {

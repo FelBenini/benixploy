@@ -8,8 +8,10 @@ import type { ProvisionServerInput } from "../domain/server";
 import {
   connectForProvisioning,
   executeCommand,
+  streamCommandOutput,
   uploadFile,
   createTofuHostVerifier,
+  ProvisionSshError,
 } from "../adapters/node-ssh/ssh-provision-client";
 import type { ProvisionAuth } from "../adapters/node-ssh";
 import {
@@ -182,24 +184,104 @@ export function createProvisionServer(repo: Repository) {
           "/tmp/install.sh",
           `--exec-key '${shellEscape(pubKey)}'`,
           `--sftp-key '${shellEscape(pubKey)}'`,
+          `--bearer-token '${shellEscape(bearerToken)}'`,
           `--control-plane '${shellEscape(controlPlaneUrl)}'`,
         ]
           .filter(Boolean)
           .join(" ");
 
-        await executeCommand(client, installCmd, 120_000);
+        // install.sh emits `[benisploy-setup] STEP_DONE:<name>` markers on
+        // stdout as each step finishes; map them to phase events so the
+        // wizard's ticks update live instead of all-or-nothing at the end.
+        const stepToPhase: Record<string, number> = {
+          docker: 2,
+          user: 3,
+          forced_command: 5,
+          ssh: 4,
+          node_monitor: 6,
+          systemd: 7,
+        };
+        const stepDone = new Set<number>();
+        let stdoutBuffer = "";
+
+        function* flushMarkers(): Generator<ProvisionEvent, void, unknown> {
+          const lines = stdoutBuffer.split("\n");
+          stdoutBuffer = lines.pop() ?? "";
+          for (const line of lines) {
+            const m = line.match(/\[benisploy-setup\] STEP_DONE:(\w+)/);
+            if (m) {
+              const phase = stepToPhase[m[1]];
+              if (phase !== undefined && !stepDone.has(phase)) {
+                stepDone.add(phase);
+                yield { phase, label: PHASES[phase], status: "done" };
+              }
+            }
+          }
+        }
+
+        try {
+          for await (const chunk of streamCommandOutput(
+            client,
+            installCmd,
+            120_000,
+          )) {
+            stdoutBuffer += chunk;
+            yield* flushMarkers();
+          }
+        } catch (err) {
+          // Parse the full captured output: mark every completed step done,
+          // then fail at the first step whose marker is missing.
+          stdoutBuffer +=
+            err instanceof ProvisionSshError ? (err.stdout ?? "") : "";
+          yield* flushMarkers();
+
+          const failedPhase = [2, 3, 4, 5, 6, 7].find(
+            (p) => !stepDone.has(p),
+          );
+          const message =
+            err instanceof Error ? err.message : "Provisioning failed";
+          yield {
+            type: "error",
+            phase: failedPhase ?? -1,
+            message,
+          };
+          return;
+        }
 
         yield { phase: 2, label: PHASES[2], status: "done" };
-
-        // Phases 3-5 are handled by install.sh
         yield { phase: 3, label: PHASES[3], status: "done" };
         yield { phase: 4, label: PHASES[4], status: "done" };
         yield { phase: 5, label: PHASES[5], status: "done" };
-
-        // Phases 6-8 skipped (no node monitor for MVP)
         yield { phase: 6, label: PHASES[6], status: "done" };
         yield { phase: 7, label: PHASES[7], status: "done" };
-        yield { phase: 8, label: PHASES[8], status: "done" };
+
+        // Phase 8: verify heartbeat — poll for up to 15s
+        yield { phase: 8, label: PHASES[8], status: "active" };
+        let heartbeatReceived = false;
+        for (let attempt = 0; attempt < 5; attempt++) {
+          await new Promise((resolve) => setTimeout(resolve, 3000));
+          const updated = await repo.servers.get(orgId, serverId);
+          if (
+            updated?.status === "online" &&
+            updated.lastHeartbeatAt != null
+          ) {
+            heartbeatReceived = true;
+            break;
+          }
+        }
+        if (heartbeatReceived) {
+          yield { phase: 8, label: PHASES[8], status: "done" };
+        } else {
+          // Non-fatal: persist the node so the monitor's token stays valid —
+          // the service auto-restarts and should connect shortly after.
+          yield {
+            phase: 8,
+            label: PHASES[8],
+            status: "error",
+            error:
+              "Monitor installed but no heartbeat received within 15s. The service will auto-restart and should connect shortly.",
+          };
+        }
 
         // Persist to DB
         await repo.registeredNodes.create({
