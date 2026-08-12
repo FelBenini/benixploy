@@ -8,4 +8,9 @@ export default defineConfig({
     host: "0.0.0.0",
     port: 5173,
   },
+  ssr: {
+    // LayerChart v2 ships raw .svelte components in its dist; Node can't
+    // import them at runtime, so Vite must compile them for SSR.
+    noExternal: ["layerchart"],
+  },
 });

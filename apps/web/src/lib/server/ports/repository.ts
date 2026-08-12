@@ -149,6 +149,11 @@ export interface NodeEventRepository {
     limit?: number,
     since?: string,
   ): Promise<NodeEvent[]>;
+  getRecentStats(
+    serverId: string,
+    limit?: number,
+    since?: string,
+  ): Promise<NodeStats[]>;
   getLatestStats(serverId: string): Promise<NodeStats | null>;
   pruneEvents(olderThan: string): Promise<void>;
 }

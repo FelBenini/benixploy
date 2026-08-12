@@ -309,7 +309,7 @@
   <title>{resumed ? "Continue setup" : "Add server"} — Benisploy</title>
 </svelte:head>
 
-<div class="flex w-full justify-center h-full">
+<div class="flex w-full justify-center grow">
   <Wizard.Root
     {steps}
     bind:step

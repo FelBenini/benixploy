@@ -404,6 +404,14 @@ export class InMemoryNodeEventRepo implements NodeEventRepository {
     return this.events.filter((e) => e.serverId === serverId).slice(0, limit);
   }
 
+  async getRecentStats(
+    serverId: string,
+    limit = 500,
+    _since?: string,
+  ): Promise<NodeStats[]> {
+    return this.stats.filter((s) => s.serverId === serverId).slice(0, limit);
+  }
+
   async getLatestStats(serverId: string): Promise<NodeStats | null> {
     return this.stats.find((s) => s.serverId === serverId) ?? null;
   }
