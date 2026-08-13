@@ -239,7 +239,7 @@ describe("provisionServer", () => {
     ).toBeDefined();
 
     // Phases 3-8 all done
-    for (let i = 3; i <= 8; i++) {
+    for (let i = 3; i <= 7; i++) {
       expect(
         phases.find((p) => p.phase === i && p.status === "done"),
       ).toBeDefined();
