@@ -2,7 +2,7 @@ import { redirect, type ServerLoadEvent } from "@sveltejs/kit";
 import { encodeSessionPublicJSON } from "$lib/server/domain/session";
 import { app } from "$lib/server/app";
 
-export const load = async ({ locals, url }: ServerLoadEvent) => {
+export const load = async ({ locals }: ServerLoadEvent) => {
   if (!locals.session) {
     throw redirect(302, "/login");
   }
@@ -36,6 +36,5 @@ export const load = async ({ locals, url }: ServerLoadEvent) => {
       name: o.name,
       slug: o.slug,
     })),
-    url,
   };
 };
