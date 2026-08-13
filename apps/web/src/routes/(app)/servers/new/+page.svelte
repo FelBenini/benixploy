@@ -63,7 +63,6 @@
     "Uploading exec-command.sh",
     "Installing node monitor",
     "Starting monitor service",
-    "Verifying heartbeat",
   ];
 
   let { data } = $props();

@@ -55,7 +55,6 @@ const PHASES = [
   "Uploading exec-command.sh",
   "Installing node monitor",
   "Starting monitor service",
-  "Verifying heartbeat",
 ];
 
 function resolveDeployScriptsDir(): string {
@@ -252,31 +251,6 @@ export function createProvisionServer(repo: Repository) {
         yield { phase: 5, label: PHASES[5], status: "done" };
         yield { phase: 6, label: PHASES[6], status: "done" };
         yield { phase: 7, label: PHASES[7], status: "done" };
-
-        // Phase 8: verify heartbeat — poll for up to 15s
-        yield { phase: 8, label: PHASES[8], status: "active" };
-        let heartbeatReceived = false;
-        for (let attempt = 0; attempt < 5; attempt++) {
-          await new Promise((resolve) => setTimeout(resolve, 3000));
-          const updated = await repo.servers.get(orgId, serverId);
-          if (updated?.status === "online" && updated.lastHeartbeatAt != null) {
-            heartbeatReceived = true;
-            break;
-          }
-        }
-        if (heartbeatReceived) {
-          yield { phase: 8, label: PHASES[8], status: "done" };
-        } else {
-          // Non-fatal: persist the node so the monitor's token stays valid —
-          // the service auto-restarts and should connect shortly after.
-          yield {
-            phase: 8,
-            label: PHASES[8],
-            status: "error",
-            error:
-              "Monitor installed but no heartbeat received within 15s. The service will auto-restart and should connect shortly.",
-          };
-        }
 
         // Persist to DB
         await repo.registeredNodes.create({
