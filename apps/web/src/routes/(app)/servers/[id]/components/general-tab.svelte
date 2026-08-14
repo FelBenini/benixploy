@@ -5,7 +5,6 @@
   import { Input } from "$lib/components/ui/input";
   import { Button } from "$lib/components/ui/button";
   import { Skeleton } from "$lib/components/ui/skeleton";
-  import { Badge } from "$lib/components/ui/badge";
   import { Separator } from "$lib/components/ui/separator";
   import type { ServerInfo } from "./types.js";
 
