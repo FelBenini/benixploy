@@ -11,6 +11,11 @@ export type ServerStatus = z.infer<typeof ServerStatusSchema>;
 export const ServerSchema = z.object({
   id: z.string().min(1).describe("Unique server identifier (ULID)"),
   name: z.string().min(1).max(128).describe("Human-readable server name"),
+  description: z
+    .string()
+    .max(512)
+    .default("")
+    .describe("Optional server description"),
   address: z
     .string()
     .min(1)
@@ -43,6 +48,7 @@ export const ServerSchema = z.object({
 
 export const CreateServerInputSchema = ServerSchema.pick({
   name: true,
+  description: true,
   address: true,
 }).extend({
   cpuCores: z
@@ -85,6 +91,7 @@ export type ProvisionServerInput = z.infer<typeof ProvisionServerInputSchema>;
 
 export const UpdateServerInputSchema = z.object({
   name: z.string().min(1).max(128).optional(),
+  description: z.string().max(512).optional(),
   address: z.string().min(1).optional(),
   sshPort: z.number().int().positive().max(65535).optional(),
 });

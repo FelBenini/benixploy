@@ -18,6 +18,7 @@ export function createRegisterServer(repo: Repository) {
     const server: Server = {
       id: crypto.randomUUID(),
       ...input,
+      description: input.description ?? "",
       sshPort: input.sshPort ?? 22,
       sshUser: input.sshUser ?? "root",
       sshPrivateKey: keyPair.privateKey,

@@ -1,6 +1,7 @@
 export interface ServerInfo {
   id: string;
   name: string;
+  description: string;
   address: string;
   sshPort: number;
   sshUser: string;

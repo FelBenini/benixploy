@@ -60,6 +60,7 @@ describe("DrizzleRepository integration", () => {
 
     const server = await registerServer(ORG, {
       name: "integration-server",
+      description: "",
       address: "10.0.0.100",
       sshPort: 22,
       sshUser: "root",
@@ -88,6 +89,7 @@ describe("DrizzleRepository integration", () => {
 
     const server = await registerServer(ORG, {
       name: "deploy-target",
+      description: "",
       address: "10.0.0.1",
       sshPort: 22,
       sshUser: "root",
@@ -126,6 +128,7 @@ describe("DrizzleRepository integration", () => {
 
     const server = await registerServer(ORG, {
       name: "get-target",
+      description: "",
       address: "10.0.0.2",
       sshPort: 22,
       sshUser: "root",
@@ -159,6 +162,7 @@ describe("DrizzleRepository integration", () => {
 
     const serverA = await registerServer(ORG, {
       name: "list-srv-a",
+      description: "",
       address: "10.0.0.3",
       sshPort: 22,
       sshUser: "root",
@@ -168,6 +172,7 @@ describe("DrizzleRepository integration", () => {
     });
     const serverB = await registerServer(ORG, {
       name: "list-srv-b",
+      description: "",
       address: "10.0.0.4",
       sshPort: 22,
       sshUser: "root",
@@ -196,6 +201,7 @@ describe("DrizzleRepository integration", () => {
 
     await registerServer("org-alpha", {
       name: "alpha-server",
+      description: "",
       address: "10.0.0.1",
       sshPort: 22,
       sshUser: "root",

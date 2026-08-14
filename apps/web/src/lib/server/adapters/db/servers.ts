@@ -13,6 +13,7 @@ function toDomain(
   return {
     id: row.id,
     name: row.name,
+    description: row.description ?? "",
     address: row.address,
     sshPort: row.sshPort,
     sshUser: row.sshUser,
@@ -45,6 +46,7 @@ export class DrizzleServerRepository implements ServerRepository {
         id: input.id,
         orgId,
         name: input.name,
+        description: input.description ?? "",
         address: input.address,
         sshPort: input.sshPort,
         sshUser: input.sshUser,
@@ -152,10 +154,16 @@ export class DrizzleServerRepository implements ServerRepository {
   async updateConnection(
     orgId: string,
     id: string,
-    data: { name?: string; address?: string; sshPort?: number },
+    data: {
+      name?: string;
+      description?: string;
+      address?: string;
+      sshPort?: number;
+    },
   ): Promise<Server> {
     const updates: Record<string, unknown> = { updatedAt: new Date() };
     if (data.name !== undefined) updates.name = data.name;
+    if (data.description !== undefined) updates.description = data.description;
     if (data.address !== undefined) updates.address = data.address;
     if (data.sshPort !== undefined) updates.sshPort = data.sshPort;
 

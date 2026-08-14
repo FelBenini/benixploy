@@ -16,6 +16,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
     server: {
       id: server.id,
       name: server.name,
+      description: server.description ?? "",
       address: server.address,
       sshPort: server.sshPort,
       sshUser: server.sshUser,

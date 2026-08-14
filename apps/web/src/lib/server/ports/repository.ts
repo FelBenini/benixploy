@@ -72,6 +72,7 @@ export interface ServerRepository {
     id: string,
     data: {
       name?: string;
+      description?: string;
       address?: string;
       sshPort?: number;
     },

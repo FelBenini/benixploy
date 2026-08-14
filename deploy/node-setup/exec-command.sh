@@ -162,6 +162,17 @@ do_exec() {
     docker compose -f "$compose" exec -T "$service" "$@"
 }
 
+do_system_info() {
+    os="$(uname -s)"
+    arch="$(uname -m)"
+    mem_kb="$(awk '/MemTotal/ {print $2}' /proc/meminfo)"
+    ram_bytes=$((mem_kb * 1024))
+    distro="$(grep ^PRETTY_NAME= /etc/os-release 2>/dev/null | sed 's/^PRETTY_NAME=//; s/^"//; s/"$//' || uname -s)"
+
+    printf '{"action":"system_info","os":"%s","arch":"%s","ramBytes":%d,"distro":"%s"}\n' \
+        "$os" "$arch" "$ram_bytes" "$(printf '%s' "$distro" | json_escape)"
+}
+
 # ---------------------------------------------------------------------------
 # main — read action + app-id from stdin (NEVER $SSH_ORIGINAL_COMMAND)
 # ---------------------------------------------------------------------------
@@ -184,13 +195,17 @@ case "$action" in
         printf '%s\n' "$VERSION_MSG"
         exit 0
         ;;
+    system_info)
+        do_system_info
+        exit 0
+        ;;
 esac
 
 app_id="${1:-}"
 shift 2>/dev/null || true
 
-if [ -z "$app_id" ] && [ "$action" != "version" ]; then
-    die "usage: <action> <app-id> [args...] — actions: deploy|restart|stop|delete|status|logs|version" 2
+if [ -z "$app_id" ] && [ "$action" != "version" ] && [ "$action" != "system_info" ]; then
+    die "usage: <action> <app-id> [args...] — actions: deploy|restart|stop|delete|status|logs|system_info|version" 2
 fi
 
 validate_app_id "$app_id"
@@ -222,6 +237,6 @@ case "$action" in
         do_exec "$app_id" "$@"
         ;;
     *)
-        die "unknown action: '$action' — valid: deploy|restart|stop|delete|status|logs|version" 2
+        die "unknown action: '$action' — valid: deploy|restart|stop|delete|status|logs|exec|system_info|version" 2
         ;;
 esac

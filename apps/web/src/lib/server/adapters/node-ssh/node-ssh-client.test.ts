@@ -18,6 +18,7 @@ function makeServer(overrides?: Partial<Server>): Server {
   return {
     id: "srv-1",
     name: "test-server",
+    description: "",
     address: "127.0.0.1",
     sshPort: 22,
     sshUser: "root",

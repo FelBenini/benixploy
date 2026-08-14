@@ -55,6 +55,7 @@ export class InMemoryServerRepo implements ServerRepository {
     const server: Server = {
       id: input.id,
       name: input.name,
+      description: input.description ?? "",
       address: input.address ?? "",
       sshPort: input.sshPort ?? 22,
       sshUser: input.sshUser ?? "root",
@@ -153,13 +154,19 @@ export class InMemoryServerRepo implements ServerRepository {
   async updateConnection(
     orgId: string,
     id: string,
-    data: { name?: string; address?: string; sshPort?: number },
+    data: {
+      name?: string;
+      description?: string;
+      address?: string;
+      sshPort?: number;
+    },
   ): Promise<Server> {
     const s = this.orgMap(orgId).get(id);
     if (!s) {
       throw new Error("Server not found");
     }
     if (data.name !== undefined) s.name = data.name;
+    if (data.description !== undefined) s.description = data.description;
     if (data.address !== undefined) s.address = data.address;
     if (data.sshPort !== undefined) s.sshPort = data.sshPort;
     s.updatedAt = new Date().toISOString();

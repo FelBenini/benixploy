@@ -113,6 +113,82 @@ export interface ExecuteCommandOptions {
   onStderr?: (chunk: string) => void;
 }
 
+export function executeCommandWithStdin(
+  client: Client,
+  command: string,
+  stdinData: string,
+  timeoutMs = 60_000,
+): Promise<{ stdout: string; stderr: string; exitCode: number | null }> {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      reject(new ProvisionSshError(`Command timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+
+    client.exec(command, (err, channel) => {
+      if (err) {
+        clearTimeout(timer);
+        if (settled) return;
+        settled = true;
+        reject(new ProvisionSshError(`exec failed: ${err.message}`, err));
+        return;
+      }
+
+      let stdout = "";
+      let stderr = "";
+
+      channel.stderr.on("data", (data: Buffer) => {
+        stderr += data.toString();
+      });
+
+      channel.on("data", (data: Buffer) => {
+        stdout += data.toString();
+      });
+
+      channel.on("close", (exitCode: number | null) => {
+        clearTimeout(timer);
+        if (settled) return;
+        settled = true;
+        if (exitCode !== 0) {
+          const reason =
+            exitCode === null
+              ? "killed by signal"
+              : `exited with code ${exitCode}`;
+          const detail = (stderr || stdout || "no output")
+            .trim()
+            .replace(/^\[benisploy-setup\]\s*/gm, "")
+            .trim()
+            .slice(0, 500);
+          reject(
+            new ProvisionSshError(
+              `Command ${reason}: ${detail || "unknown error"}`,
+              undefined,
+              stdout,
+              stderr,
+            ),
+          );
+        } else {
+          resolve({ stdout, stderr, exitCode });
+        }
+      });
+
+      channel.stderr.on("error", () => {});
+      channel.on("error", (chErr: Error) => {
+        clearTimeout(timer);
+        if (settled) return;
+        settled = true;
+        reject(new ProvisionSshError(`Channel error: ${chErr.message}`, chErr));
+      });
+
+      channel.write(stdinData);
+      channel.stdin.end();
+    });
+  });
+}
+
 export function executeCommand(
   client: Client,
   command: string,

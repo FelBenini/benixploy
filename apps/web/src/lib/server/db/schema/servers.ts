@@ -17,6 +17,7 @@ export const servers = pgTable(
       .notNull()
       .references(() => orgs.id, { onDelete: "cascade" }),
     name: text().notNull(),
+    description: text().notNull().default(""),
     address: text().notNull(),
     sshPort: integer().notNull().default(22),
     sshUser: text().notNull().default("root"),
