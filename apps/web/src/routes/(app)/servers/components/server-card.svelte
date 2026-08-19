@@ -64,7 +64,8 @@
   }
 </script>
 
-<div
+<a
+  href={resolve(`/servers/${server.id}`)}
   class="group flex flex-col gap-4 rounded bg-card/80 backdrop-blur-sm ring-1 ring-foreground/10 p-4 transition-colors hover:bg-card"
 >
   <div class="flex items-start justify-between gap-2">
@@ -75,7 +76,7 @@
         <Server class="size-4.5" />
       </div>
       <div class="min-w-0">
-        <h3 class="text-foreground text-sm font-semibold truncate">
+        <h3>
           {server.name}
         </h3>
         <span
@@ -144,4 +145,4 @@
       </div>
     </div>
   {/if}
-</div>
+</a>

@@ -52,6 +52,7 @@ export interface ServerRepository {
   list(orgId: string): Promise<Server[]>;
   updateStatus(orgId: string, id: string, status: string): Promise<void>;
   updateHeartbeat(orgId: string, id: string): Promise<void>;
+  touchHeartbeat(serverId: string): Promise<void>;
   provision(
     orgId: string,
     id: string,
@@ -71,6 +72,7 @@ export interface ServerRepository {
     id: string,
     data: {
       name?: string;
+      description?: string;
       address?: string;
       sshPort?: number;
     },
@@ -148,6 +150,11 @@ export interface NodeEventRepository {
     limit?: number,
     since?: string,
   ): Promise<NodeEvent[]>;
+  getRecentStats(
+    serverId: string,
+    limit?: number,
+    since?: string,
+  ): Promise<NodeStats[]>;
   getLatestStats(serverId: string): Promise<NodeStats | null>;
   pruneEvents(olderThan: string): Promise<void>;
 }
@@ -157,6 +164,7 @@ export interface RegisteredNodeRepository {
     input: CreateRegisteredNodeInput & { id: string },
   ): Promise<RegisteredNode>;
   getByServer(serverId: string): Promise<RegisteredNode | null>;
+  getByBearerToken(token: string): Promise<RegisteredNode | null>;
   updateStatus(serverId: string, status: string): Promise<void>;
   delete(serverId: string): Promise<void>;
 }

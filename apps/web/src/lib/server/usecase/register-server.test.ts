@@ -10,6 +10,7 @@ describe("registerServer", () => {
 
     const input: CreateServerInput = {
       name: "my-server",
+      description: "",
       address: "192.168.1.100",
       sshPort: 22,
       sshUser: "root",
@@ -43,6 +44,7 @@ describe("registerServer", () => {
 
     const input: CreateServerInput = {
       name: "minimal-server",
+      description: "",
       address: "10.0.0.1",
       sshPort: 22,
       sshUser: "root",
@@ -62,6 +64,7 @@ describe("registerServer", () => {
 
     const input: CreateServerInput = {
       name: "persist-test",
+      description: "",
       address: "10.0.0.2",
       sshPort: 22,
       sshUser: "root",
@@ -83,6 +86,7 @@ describe("registerServer", () => {
 
     const input: CreateServerInput = {
       name: "org-specific",
+      description: "",
       address: "10.0.0.3",
       sshPort: 22,
       sshUser: "root",

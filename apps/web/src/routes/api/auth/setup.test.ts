@@ -238,7 +238,7 @@ describe("POST /api/auth/setup", () => {
       expect.stringContaining("."),
       expect.objectContaining({
         httpOnly: true,
-        secure: true,
+        secure: false,
         sameSite: "lax",
       }),
     );

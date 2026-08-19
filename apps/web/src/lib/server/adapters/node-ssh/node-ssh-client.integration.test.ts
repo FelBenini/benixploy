@@ -109,6 +109,7 @@ describe("SshNodeCommandClient integration", () => {
     server = {
       id: "integration-srv",
       name: "integration-test",
+      description: "",
       address: host,
       sshPort: port,
       sshUser: "benisploy",

@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import { GenericContainer, type StartedTestContainer } from "testcontainers";
 import { generateKeyPairSync } from "node:crypto";
+import { createServer, type Server } from "node:http";
+import { networkInterfaces } from "node:os";
 import { utils } from "ssh2";
 import { InMemoryRepository, TEST_ORG_ID } from "./test-utils";
 import {
@@ -12,6 +14,22 @@ import type { ProvisionServerInput } from "../domain/server";
 import { join } from "node:path";
 
 const DOCKERFILE_DIR = join(process.cwd(), "../../deploy/test-node");
+
+// The test-node container reaches the control plane (this test process) via
+// `host.docker.internal`, which must resolve to an IP the container can
+// route to. Under rootless Docker the bridge gateway isn't reachable from
+// containers, so resolve the host's non-internal IPv4 address instead.
+function hostLanIp(): string {
+  const ifaces = networkInterfaces();
+  for (const addrs of Object.values(ifaces)) {
+    for (const addr of addrs ?? []) {
+      if (addr.family === "IPv4" && !addr.internal) {
+        return addr.address;
+      }
+    }
+  }
+  throw new Error("Failed to resolve host LAN IP");
+}
 
 function generateTestKeyPair(): { publicKey: string; privateKey: string } {
   const keyPair = generateKeyPairSync("rsa", {
@@ -78,25 +96,65 @@ describe("provisionServer", () => {
   let host: string;
   let port: number;
   let repo: InMemoryRepository;
+  let binaryServer: Server;
+  let binaryServerPort: number;
+  let failMonitorDownload = false;
 
   // Disable Ryuk locally with TESTCONTAINERS_RYUK_DISABLED=true
   // (rootless port conflict on this machine). CI uses Ryuk by default.
   beforeAll(async () => {
+    // Serve the node-monitor download endpoint the same way the control
+    // plane would (install.sh fetches the binary from it during setup).
+    binaryServer = createServer((req, res) => {
+      const url = new URL(req.url ?? "/", "http://localhost");
+      if (url.pathname === "/api/servers/install/node-monitor") {
+        if (failMonitorDownload) {
+          res.writeHead(500);
+          res.end("simulated download failure");
+          return;
+        }
+        res.writeHead(200, {
+          "Content-Type": "application/octet-stream",
+        });
+        res.end(Buffer.from("dummy-node-monitor-binary"));
+      } else {
+        res.writeHead(404);
+        res.end();
+      }
+    });
+    await new Promise<void>((resolve) =>
+      binaryServer.listen(0, "0.0.0.0", resolve),
+    );
+    const addr = binaryServer.address();
+    if (addr && typeof addr === "object") {
+      binaryServerPort = addr.port;
+    } else {
+      throw new Error("Failed to start binary server");
+    }
+
     const built = await GenericContainer.fromDockerfile(DOCKERFILE_DIR)
       .withBuildkit()
       .build("benisploy-test-node", { deleteOnExit: false });
-    container = await built.withExposedPorts(22).start();
+    container = await built
+      .withExposedPorts(2222)
+      .withPrivilegedMode()
+      .withExtraHosts([
+        { host: "host.docker.internal", ipAddress: hostLanIp() },
+      ])
+      .start();
     host = container.getHost();
-    port = container.getMappedPort(22);
+    port = container.getMappedPort(2222);
     await new Promise((r) => setTimeout(r, 3000));
   }, 180_000);
 
   afterAll(async () => {
     await container?.stop();
+    await new Promise<void>((resolve) => binaryServer?.close(() => resolve()));
   });
 
   beforeEach(() => {
     repo = new InMemoryRepository();
+    failMonitorDownload = false;
   });
 
   function makeInput(overrides?: Partial<ProvisionServerInput>) {
@@ -125,6 +183,18 @@ describe("provisionServer", () => {
     return id;
   }
 
+  // Simulates the telemetry ingest endpoint touching the server heartbeat
+  // when the node monitor's first push arrives (the test-node container has
+  // no systemd, so the real monitor binary never runs there).
+  function injectHeartbeat(serverId: string, delayMs = 4000): NodeJS.Timeout {
+    return setTimeout(() => {
+      void repo.servers.touchHeartbeat(serverId);
+    }, delayMs);
+  }
+
+  const controlPlaneUrl = () =>
+    `http://host.docker.internal:${binaryServerPort}`;
+
   // ── Happy path: password auth ──────────────────────────────────────────
 
   it("provisions a server with password auth and persists everything", async () => {
@@ -132,11 +202,13 @@ describe("provisionServer", () => {
     const serverId = await seedServer(host, port, "root");
 
     const provisionServer = createProvisionServer(repo);
+    const heartbeatTimer = injectHeartbeat(serverId);
     const events = await collectEvents(
       provisionServer(orgId, serverId, makeInput(), {
-        controlPlaneUrl: "http://cp.example.com",
+        controlPlaneUrl: controlPlaneUrl(),
       }),
     );
+    clearTimeout(heartbeatTimer);
 
     // ── Event sequence ──────────────────────────────────────
     const phases = phaseEvents(events);
@@ -167,7 +239,7 @@ describe("provisionServer", () => {
     ).toBeDefined();
 
     // Phases 3-8 all done
-    for (let i = 3; i <= 8; i++) {
+    for (let i = 3; i <= 7; i++) {
       expect(
         phases.find((p) => p.phase === i && p.status === "done"),
       ).toBeDefined();
@@ -221,6 +293,7 @@ describe("provisionServer", () => {
     const serverId = await seedServer(host, port, "root");
 
     const provisionServer = createProvisionServer(repo);
+    const heartbeatTimer = injectHeartbeat(serverId);
     const events = await collectEvents(
       provisionServer(
         orgId,
@@ -230,9 +303,10 @@ describe("provisionServer", () => {
           privateKey: keyPair.privateKey,
           password: undefined,
         }),
-        { controlPlaneUrl: "http://cp.example.com" },
+        { controlPlaneUrl: controlPlaneUrl() },
       ),
     );
+    clearTimeout(heartbeatTimer);
 
     const final = lastEvent(events);
     expect("type" in final && final.type).toBe("done");
@@ -243,6 +317,51 @@ describe("provisionServer", () => {
 
     const node = await repo.registeredNodes.getByServer(serverId);
     expect(node).not.toBeNull();
+  }, 180_000);
+
+  // ── Failure: node-monitor download ────────────────────────────────────
+
+  it("marks completed steps done and fails at node-monitor install", async () => {
+    failMonitorDownload = true;
+
+    const orgId = TEST_ORG_ID;
+    const serverId = await seedServer(host, port, "root");
+
+    const provisionServer = createProvisionServer(repo);
+    const events = await collectEvents(
+      provisionServer(orgId, serverId, makeInput(), {
+        controlPlaneUrl: controlPlaneUrl(),
+      }),
+    );
+
+    const phases = phaseEvents(events);
+
+    // Steps that completed before the failure get a done tick...
+    for (const p of [2, 3, 4, 5]) {
+      expect(
+        phases.find((e) => e.phase === p && e.status === "done"),
+        `phase ${p} should be done`,
+      ).toBeDefined();
+    }
+
+    // ...the failing step (node-monitor) is not done.
+    expect(
+      phases.find((e) => e.phase === 6 && e.status === "done"),
+    ).toBeUndefined();
+
+    // Error event points at the failed phase.
+    const lastEv = lastEvent(events);
+    expect("type" in lastEv && lastEv.type).toBe("error");
+    if ("type" in lastEv && lastEv.type === "error") {
+      expect(lastEv.phase).toBe(6);
+    }
+
+    // Nothing persisted — server stays provisioning, no registered node.
+    const server = await repo.servers.get(orgId, serverId);
+    expect(server!.status).toBe("provisioning");
+
+    const node = await repo.registeredNodes.getByServer(serverId);
+    expect(node).toBeNull();
   }, 180_000);
 
   // ── Failure: wrong password ───────────────────────────────────────────

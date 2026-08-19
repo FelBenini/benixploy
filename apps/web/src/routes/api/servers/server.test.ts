@@ -44,6 +44,7 @@ function createRequestEvent(
 
 const validInput = {
   name: "my-server",
+  description: "",
   address: "192.168.1.100",
   cpuCores: 4,
   memoryBytes: 8589934592,

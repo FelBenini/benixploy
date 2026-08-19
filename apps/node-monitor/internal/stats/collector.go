@@ -78,12 +78,12 @@ func listContainers() []protocol.ContainerState {
 	cmd := exec.Command("docker", "ps", "--format", "json", "--no-trunc")
 	output, err := cmd.Output()
 	if err != nil {
-		return nil
+		return []protocol.ContainerState{}
 	}
 
 	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
 	if len(lines) == 0 || lines[0] == "" {
-		return nil
+		return []protocol.ContainerState{}
 	}
 
 	seen := make(map[string]bool)

@@ -1,4 +1,4 @@
-import { eq, desc, and, gt } from "drizzle-orm";
+import { eq, desc, and, lt, gt, asc } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import * as schema from "../../db/schema";
 import { nodeEvents, nodeStats } from "../../db/schema/node-events";
@@ -131,9 +131,29 @@ export class DrizzleNodeEventRepository implements NodeEventRepository {
     return toStatsDomain(row);
   }
 
+  async getRecentStats(
+    serverId: string,
+    limit = 500,
+    since?: string,
+  ): Promise<NodeStats[]> {
+    const conditions = [eq(nodeStats.serverId, serverId)];
+    if (since) {
+      conditions.push(gt(nodeStats.receivedAt, new Date(since)));
+    }
+
+    const rows = await this.db
+      .select()
+      .from(nodeStats)
+      .where(and(...conditions))
+      .orderBy(asc(nodeStats.receivedAt))
+      .limit(limit);
+
+    return rows.map(toStatsDomain);
+  }
+
   async pruneEvents(olderThan: string): Promise<void> {
     await this.db
       .delete(nodeEvents)
-      .where(gt(nodeEvents.receivedAt, new Date(olderThan)));
+      .where(lt(nodeEvents.receivedAt, new Date(olderThan)));
   }
 }

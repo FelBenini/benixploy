@@ -7,6 +7,7 @@
   import Settings from "@lucide/svelte/icons/settings";
   import Boxes from "@lucide/svelte/icons/boxes";
   import { page } from "$app/state";
+  import { fade } from "svelte/transition";
 
   let { data, children } = $props();
 
@@ -90,19 +91,35 @@
   </Sidebar.Root>
 
   <Sidebar.Inset>
-<header class="sticky top-0 z-50 flex md:hidden shrink-0 items-center p-2 backdrop-blur-lg shadow">
-  <Sidebar.Trigger
-    class="mr-2 border border-border p-6 text-xl"
-  />
+    <header
+      class="sticky top-0 z-50 flex shrink-0 md:h-10 items-center p-2 backdrop-blur-lg shadow"
+    >
+      <Sidebar.Trigger class="mr-2 md:hidden p-6 text-xl" />
 
-  <img
-    src="/logo.svg"
-    class="absolute left-1/2 w-1/2 -translate-x-1/2"
-    alt="benisploy"
-  />
-</header>
-    <div class="bg-background flex flex-1 flex-col">
-      {@render children()}
+      <img
+        src="/logo.svg"
+        class="absolute left-1/2 max-h-3/4 w-1/2 -translate-x-1/2"
+        alt="benisploy"
+      />
+    </header>
+    <div class="page-transition grow">
+      {#key page.url.pathname}
+        <div
+          transition:fade={{ duration: 150 }}
+          class="bg-background flex flex-1 flex-col page-container"
+        >
+          {@render children()}
+        </div>
+      {/key}
     </div>
   </Sidebar.Inset>
 </Sidebar.Provider>
+
+<style>
+  .page-container {
+    grid-area: 1 / 1;
+  }
+  .page-transition {
+    display: grid;
+  }
+</style>

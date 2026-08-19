@@ -106,6 +106,7 @@ CREATE TABLE "servers" (
 	"id" text PRIMARY KEY NOT NULL,
 	"orgId" text NOT NULL,
 	"name" text NOT NULL,
+	"description" text DEFAULT '' NOT NULL,
 	"address" text NOT NULL,
 	"sshPort" integer DEFAULT 22 NOT NULL,
 	"sshUser" text DEFAULT 'root' NOT NULL,

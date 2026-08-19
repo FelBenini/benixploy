@@ -15,6 +15,7 @@
     installState,
     activePhase,
     completedPhases,
+    failedPhase = -1,
     error,
     knownErrors = [],
     onRetry,
@@ -23,6 +24,7 @@
     installState: "idle" | "running" | "done" | "error";
     activePhase: number;
     completedPhases: number;
+    failedPhase?: number;
     error: string;
     knownErrors?: KnownErrorItem[];
     onRetry: () => void;
@@ -52,7 +54,14 @@
 <div class="flex flex-col gap-2 py-2">
   {#each phases as phase, i (phase)}
     <div class="flex items-center gap-2.5 text-sm">
-      {#if i < completedPhases}
+      {#if i === failedPhase}
+        <span
+          class="flex size-4 items-center justify-center rounded-full bg-destructive/15 text-destructive"
+        >
+          <AlertCircle class="size-3" />
+        </span>
+        <span class="font-medium text-destructive">{phase}</span>
+      {:else if i < completedPhases}
         <span
           class="flex size-4 items-center justify-center rounded-full bg-green-950/50 text-green-400"
         >

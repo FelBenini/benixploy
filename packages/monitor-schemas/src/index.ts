@@ -197,7 +197,11 @@ export const StatsPushPayloadSchema = z.object({
 
   containerCount: z.number().int().nonnegative(),
 
-  containerStates: z.array(ContainerStateSchema),
+  // The Go monitor marshals a nil slice as `null`; accept and normalize it.
+  containerStates: z
+    .array(ContainerStateSchema)
+    .nullable()
+    .transform((v) => v ?? []),
 });
 
 export const EventTypeSchema = z.enum([

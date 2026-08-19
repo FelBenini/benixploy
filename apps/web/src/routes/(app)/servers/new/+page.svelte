@@ -63,7 +63,6 @@
     "Uploading exec-command.sh",
     "Installing node monitor",
     "Starting monitor service",
-    "Verifying heartbeat",
   ];
 
   let { data } = $props();
@@ -81,6 +80,7 @@
   let installState = $state<"idle" | "running" | "done" | "error">("idle");
   let activePhase = $state(-1);
   let completedPhases = $state(0);
+  let failedPhase = $state(-1);
   let createdServer = $state<{
     id: string;
     name: string;
@@ -193,6 +193,7 @@
     installState = "running";
     activePhase = -1;
     completedPhases = 0;
+    failedPhase = -1;
 
     try {
       if (!provisioningServerId) {
@@ -260,12 +261,18 @@
             activePhase = phaseIdx;
           } else if (parsed.status === "done") {
             completedPhases = Math.max(completedPhases, phaseIdx + 1);
+            if (phaseIdx + 1 < installPhases.length) {
+              activePhase = phaseIdx + 1;
+            }
           } else if (parsed.status === "error") {
+            failedPhase = phaseIdx;
             throw new Error(
               (parsed.error as string) ?? `Phase ${phaseIdx} failed`,
             );
           }
         } else if (eventType === "error") {
+          const phaseIdx = (parsed.phase as number) ?? -1;
+          if (phaseIdx >= 0) failedPhase = phaseIdx;
           knownErrors = (parsed.knownErrors as KnownErrorItem[]) ?? [];
           throw new Error((parsed.message as string) ?? "Provisioning failed");
         }
@@ -301,7 +308,7 @@
   <title>{resumed ? "Continue setup" : "Add server"} — Benisploy</title>
 </svelte:head>
 
-<div class="flex w-full justify-center h-full">
+<div class="flex w-full justify-center grow">
   <Wizard.Root
     {steps}
     bind:step
@@ -334,6 +341,7 @@
           {installState}
           {activePhase}
           {completedPhases}
+          {failedPhase}
           {error}
           {knownErrors}
           onRetry={startInstall}
