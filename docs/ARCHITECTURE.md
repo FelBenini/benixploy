@@ -231,7 +231,7 @@ Scheduled volume + database dumps to S3-compatible storage (self-hostable via Mi
 - **Secrets** (env vars, DB passwords) are encrypted at rest and never included in prompts sent to the LLM in plaintext.
 - **Revocation** is two separate, simple operations: remove the SSH key from the generated `authorized_keys` (control access gone immediately, enforced by `sshd`), and invalidate/rotate the bearer token (telemetry access gone on next push attempt). Neither requires connection-tracking or a polling sweep.
 - **SFTP write access on the node should be scoped**, not general filesystem access — restrict it (via `ForceCommand`/`ChrootDirectory`/`internal-sftp` with a path restriction) to only the app directory tree (`/opt/benisploy/apps/`), so a compromised control-plane credential can't overwrite files outside it.
-- **The "infer spec from arbitrary GitHub repo" path** is rate-limited and sandboxed.
+- **The "infer spec from arbitrary git repo" path** is rate-limited and sandboxed, and is provider-agnostic: it talks to any git server through the `GitProviderClient` port (§4.5/§6.4), never to a provider's API directly.
 - **Full audit trail** of agent reasoning + actions, visible to the user — now also recording which SSH exec calls and which Compose file version were applied, giving a literal command-level audit trail in addition to the Orchestrator-function-level one.
 
 ---
@@ -281,6 +281,7 @@ Control plane ↔ node: SSH (exec + SFTP) for control, HTTPS (bearer token) for 
       /db
       /node-ssh                  # SSH exec + SFTP client implementing NodeCommandClient
       /compose-gen                # AppSpec -> docker-compose.yml
+      /git                        # GitProviderClient adapters: github (MVP), gitea/gitlab/bitbucket (deferred)
       /telemetry                  # ingest handling + storage of node_events / latest stats
       /llm
       /eventbus
@@ -298,7 +299,7 @@ Control plane ↔ node: SSH (exec + SFTP) for control, HTTPS (bearer token) for 
 |---|---|
 | Ports & Adapters (hexagonal) | Control plane core (`lib/server/usecase` + `ports`) |
 | Repository pattern | Data access (`ports.Repository`, Drizzle adapter) |
-| Strategy pattern | `LLMProvider` interface |
+| Strategy pattern | `LLMProvider` interface; `GitProviderClient` interface (per-server git adapters: github, gitea, gitlab, bitbucket) |
 | Command pattern | Each orchestrator tool — maps onto "generate/upload a Compose file, then send one of six fixed action words over SSH" |
 | Explicit state machine | Deployment lifecycle: `pending → planning → awaiting_confirmation → executing → verifying → healthy / failed → (rolled_back)` |
 | Observer / pub-sub | Deployment & health events → in-process event emitter → WebSocket gateway + audit logger + agent self-healing trigger. Event *source* for health signals is the telemetry ingest endpoint receiving monitor pushes. |
@@ -338,6 +339,7 @@ Control plane ↔ node: SSH (exec + SFTP) for control, HTTPS (bearer token) for 
 | Event bus | In-process event emitter, fed by telemetry ingest |
 | Reverse proxy (managed nodes) | Traefik, config generated directly into the Compose file |
 | AI agent / LLM | TypeScript, `LLMProvider` interface, `@anthropic-ai/sdk` first, Ollama later |
+| Git provider integration | TypeScript, `GitProviderClient` interface + per-provider adapters. GitHub (App, RS256 JWT) in MVP; Gitea/GitLab/Bitbucket deferred (`Deferred — Multi-provider Git` milestone) |
 | Auth (control plane) | SvelteKit `hooks.server.ts`, `Bun.password` (argon2id) |
 | Auth (node control channel) | SSH key pair per node, forced command in `authorized_keys` |
 | Auth (node telemetry channel) | Bearer token per node, issued at registration |
