@@ -56,8 +56,15 @@ export const PortMappingSchema = z.object({
 
 export type PortMapping = z.infer<typeof PortMappingSchema>;
 
+export const AppKindSchema = z.enum(["stateless", "stateful", "database"]);
+
+export type AppKind = z.infer<typeof AppKindSchema>;
+
 export const AppSpecSchema = z
   .object({
+    kind: AppKindSchema.default("stateless").describe(
+      "Resource type: stateless, stateful, or database",
+    ),
     name: z.string().min(1).max(64).describe("Human-readable app name"),
     image: z.string().optional().describe("Docker image, e.g. 'nginx:alpine'"),
     buildContext: z
@@ -92,6 +99,23 @@ export const AppSpecSchema = z
   .refine(
     (spec) => spec.image !== undefined || spec.buildContext !== undefined,
     { message: "Either 'image' or 'buildContext' must be provided" },
-  );
+  )
+  .superRefine((spec, ctx) => {
+    if (spec.kind === "database" && spec.volumeMounts.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "A 'database' app requires at least one volume mount",
+        path: ["kind"],
+      });
+    }
+    if (spec.kind === "database" && spec.buildContext !== undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "A 'database' app must use a pre-published image, not a build context",
+        path: ["kind"],
+      });
+    }
+  });
 
 export type AppSpec = z.infer<typeof AppSpecSchema>;

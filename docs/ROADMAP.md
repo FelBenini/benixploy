@@ -46,13 +46,13 @@ Goal: `git push` to a tracked branch on GitHub → app builds and deploys live i
             └──> #59 git_sources (also driven by #50's `active_color`)
                           │
                           v
-            #60 github_apps + Settings App entry
+            #60 git_connections + Settings "Connect Git provider"
                           │
                           v
-            #61 /api/github/callback + JWT helper
+            #74 GitProviderClient port + GitHub adapter   ──> #61 GitHub install callback + JWT helper
                           │
                           v
-            #62 /api/github/events webhook receiver + recent pushes feed
+            #62 /api/git/events/[connectionId] webhook receiver + recent pushes feed
                           │
                           v
             #63 Traefik dynamic-config writer (atomic SFTP)
@@ -61,8 +61,10 @@ Goal: `git push` to a tracked branch on GitHub → app builds and deploys live i
             #64 Push deploy orchestrator (build → compose → SFTP → deploy-color → flip → warm)
                           │
                           v
-            #65 Dashboard wizard "New App → GitHub"  •  #66 Rollback button
+            #65 Dashboard wizard "New App → Git"  •  #66 Rollback button
 ```
+
+> **Multi-provider note:** the CD path above is provider-agnostic. The `GitProviderClient` port (#74) abstracts the git server; only the GitHub adapter ships in this sprint. Gitea (#75), GitLab (#76), and Bitbucket (#77) adapters are filed in the `Deferred — Multi-provider Git` milestone and drop into the same port with no schema or consumer changes.
 
 ### Each issue, what it visibly delivers
 
@@ -71,13 +73,14 @@ Goal: `git push` to a tracked branch on GitHub → app builds and deploys live i
 - **#50** ships the two-service Compose output for stateless apps (no Traefik labels — that's #63).
 - **#51** ships the new forced-command actions (`deploy-color`, `stop-color`, `color-status`), the FSM extension, and unit tests.
 - **#52** ships the warm-color retention reaper and instant-rollback use case (no UI yet — #66 wires the button).
-- **#59** ships the `git_sources` table **and** the dashboard "Source" panel: repo, branch, short SHA, active-color pill, warm-color pill with countdown. This is the first user-facing visible sign of the whole feature — it ships before the wizard because data needs to exist before the wizard can create it.
-- **#60** ships the encrypted `github_apps` table + Settings "Connect GitHub App" form (manual paste of PEM for MVP — no OAuth flow yet).
-- **#61** ships the install callback + the GitHub JWT helper. The Settings page's "Install App on GitHub →" deep link works from here.
-- **#62** ships the webhook receiver: verified signature, debounced+deduped, enqueues a deploy job. Adds the "Recent pushes" feed to the app detail page.
+- **#59** ships the `git_sources` table (provider, connection_id, `clone_url`) **and** the dashboard "Source" panel: repo, branch, short SHA, active-color pill, warm-color pill with countdown. This is the first user-facing visible sign of the whole feature — it ships before the wizard because data needs to exist before the wizard can create it.
+- **#60** ships the encrypted, provider-agnostic `git_connections` table + Settings "Connect Git provider" form (GitHub App PEM paste for MVP; token+`base_url` fields for Gitea/GitLab/Bitbucket, disabled until their adapters land).
+- **#74** ships the `GitProviderClient` port + registry + the GitHub adapter. This is the linchpin — every consumer in #61/#62/#64/#65 calls the port, never GitHub-specific code.
+- **#61** ships the GitHub App install callback + the RS256 JWT helper (the GitHub implementation of #74's port). The Settings page's "Install App on GitHub →" deep link works from here.
+- **#62** ships the generic webhook receiver at `/api/git/events/[connectionId]`: per-provider signature verification + payload normalization via the port, debounced+deduped, enqueues a deploy job. Adds the "Recent pushes" feed to the app detail page.
 - **#63** ships the Traefik dynamic-config writer + atomic SFTP. This is the sub-second zero-downtime flip mechanism.
-- **#64** ships the orchestrator — wires #48 (build), #50 (compose-gen), #51 (deploy-color), #63 (Traefik flip), #52 (warm retention). The first end-to-end push deploy works from this issue closing. Notifies via `node_events`.
-- **#65** ships the wizard UI: install App → pick repo+branch → plan preview → confirm → first blue-only deploy. The cumulative user-facing entry point.
+- **#64** ships the orchestrator — wires #48 (build), #50 (compose-gen), #51 (deploy-color), #63 (Traefik flip), #52 (warm retention), reading `clone_url` + clone auth via #74. The first end-to-end push deploy works from this issue closing. Notifies via `node_events`.
+- **#65** ships the wizard UI: pick provider connection → pick repo+branch → plan preview → confirm → first blue-only deploy. The cumulative user-facing entry point.
 - **#66** ships the rollback button — instant Traefik file flip for `stateless` with a warm color, classical re-upload for `stateful`/`database`. The user-visible safety net for every bad push.
 
 ### What's still NOT in this sprint
@@ -86,7 +89,8 @@ Goal: `git push` to a tracked branch on GitHub → app builds and deploys live i
 - Custom domains / Let's Encrypt (nip.io subdomains only for MVP)
 - Manual env-var editing UI after creation (env vars set wizard-time only)
 - PR / preview deploys, multi-branch tracking
-- GitHub App OAuth-based registration (manual paste only — the deep link works, but registration is human-pasted on the Settings page)
+- Git-provider OAuth-based registration (manual paste only — the GitHub deep link works, but registration is human-pasted on the Settings page; token-based providers paste a token)
+- Gitea (#75) / GitLab (#76) / Bitbucket (#77) adapters — `Deferred — Multi-provider Git` milestone. The port + schema ship now; only GitHub is functional in this sprint.
 - Backups (#53–#58) — Deferred milestone
 
 ### Open risk flags — revisit weekly
@@ -105,3 +109,4 @@ Goal: `git push` to a tracked branch on GitHub → app builds and deploys live i
 - Phase 3 — Self-Healing & Proactive Agent (materially de-risked Phase 3 stays the same).
 - Phase 4 — Scale Out (unchanged).
 - Backups (#53–#58) — re-prioritize after CD MVP ships.
+- Multi-provider Git (#75 Gitea, #76 GitLab, #77 Bitbucket) — `Deferred — Multi-provider Git` milestone, ready to pull in once the port + schema land in Sprint B.

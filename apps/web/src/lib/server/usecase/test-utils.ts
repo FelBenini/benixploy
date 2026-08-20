@@ -592,6 +592,7 @@ export class FakeNodeCommandClient implements NodeCommandClientType {
 
 export function validAppSpec(overrides?: Partial<AppSpec>): AppSpec {
   return {
+    kind: "stateless",
     name: "test-app",
     image: "nginx:alpine",
     envVars: {},

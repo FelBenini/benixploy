@@ -46,6 +46,7 @@ describe("getApp", () => {
     const app: App = {
       id: "app-no-deploy",
       name: "empty-app",
+      kind: "stateless",
       serverId: "server-1",
       status: "pending",
       createdAt: new Date().toISOString(),
