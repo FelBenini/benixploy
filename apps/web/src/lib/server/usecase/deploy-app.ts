@@ -24,6 +24,7 @@ export function createDeployApp(
     const app: App = {
       id: crypto.randomUUID(),
       name: appSpec.name,
+      kind: appSpec.kind ?? "stateless",
       serverId,
       status: "deploying",
       createdAt: now,

@@ -1,0 +1,1 @@
+ALTER TABLE "apps" ADD COLUMN "kind" text DEFAULT 'stateless' NOT NULL;

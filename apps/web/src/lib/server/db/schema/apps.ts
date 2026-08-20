@@ -13,6 +13,7 @@ export const apps = pgTable(
       .notNull()
       .references(() => servers.id, { onDelete: "cascade" }),
     name: text().notNull(),
+    kind: text().notNull().default("stateless"),
     status: text().notNull().default("pending"),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),

@@ -8,6 +8,7 @@ function toDomain(row: typeof apps.$inferSelect): App {
   return {
     id: row.id,
     name: row.name,
+    kind: row.kind as App["kind"],
     serverId: row.serverId,
     status: row.status as App["status"],
     createdAt: row.createdAt.toISOString(),
@@ -26,6 +27,7 @@ export class DrizzleAppRepository implements AppRepository {
         orgId,
         serverId: data.serverId,
         name: data.name,
+        kind: data.kind,
         status: data.status,
         createdAt: new Date(data.createdAt),
         updatedAt: new Date(data.updatedAt),
