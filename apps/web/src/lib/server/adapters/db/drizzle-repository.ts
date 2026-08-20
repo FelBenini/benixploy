@@ -13,6 +13,7 @@ import { DrizzleOrgMembershipRepository } from "./org-memberships";
 import { DrizzleNodeEventRepository } from "./node-events";
 import { DrizzleRegisteredNodeRepository } from "./registered-nodes";
 import { DrizzleRegistrationTokenRepository } from "./registration-tokens";
+import { DrizzleGitConnectionRepository } from "./git-connections";
 
 export type DrizzleDB = NodePgDatabase<typeof schema>;
 
@@ -28,6 +29,7 @@ export class DrizzleRepository implements Repository {
   nodeEvents: DrizzleNodeEventRepository;
   registeredNodes: DrizzleRegisteredNodeRepository;
   registrationTokens: DrizzleRegistrationTokenRepository;
+  gitConnections: DrizzleGitConnectionRepository;
 
   constructor(
     db: DrizzleDB,
@@ -49,5 +51,10 @@ export class DrizzleRepository implements Repository {
     this.nodeEvents = new DrizzleNodeEventRepository(db);
     this.registeredNodes = new DrizzleRegisteredNodeRepository(db);
     this.registrationTokens = new DrizzleRegistrationTokenRepository(db);
+    this.gitConnections = new DrizzleGitConnectionRepository(
+      db,
+      encryptPrivateKey,
+      decryptPrivateKey,
+    );
   }
 }

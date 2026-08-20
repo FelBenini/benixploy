@@ -15,6 +15,20 @@
       "when": 1787252064569,
       "tag": "0001_glamorous_magdalene",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1787262052692,
+      "tag": "0002_brainy_trish_tilby",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1787264201292,
+      "tag": "0003_slippery_screwball",
+      "breakpoints": true
     }
   ]
 }

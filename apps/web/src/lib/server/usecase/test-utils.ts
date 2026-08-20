@@ -29,6 +29,12 @@ import type { NodeEvent, NodeStats } from "../domain/node-event";
 import type { NodeEventRepository } from "../ports/repository";
 import type { RegisteredNode } from "../domain/registered-node";
 import type { RegistrationToken } from "../domain/registration-token";
+import type {
+  GitConnection,
+  GitConnectionWithSecrets,
+  UpsertGitConnectionInput,
+} from "../domain/git-connection";
+import type { GitConnectionRepository } from "../ports/repository";
 
 export const TEST_ORG_ID = "org-test";
 export const TEST_USER_ID = "user-test";
@@ -518,6 +524,97 @@ export class InMemoryRegistrationTokenRepo implements RegistrationTokenRepositor
   }
 }
 
+export class InMemoryGitConnectionRepo implements GitConnectionRepository {
+  private data = new Map<
+    string,
+    GitConnectionWithSecrets & { orgId: string }
+  >();
+
+  async findGitConnection(
+    orgId: string,
+    id: string,
+  ): Promise<GitConnectionWithSecrets | null> {
+    const c = this.data.get(id);
+    if (!c || c.orgId !== orgId) return null;
+    const { orgId: _orgId, ...rest } = c;
+    return rest;
+  }
+
+  async listGitConnections(orgId: string): Promise<GitConnection[]> {
+    return Array.from(this.data.values())
+      .filter((c) => c.orgId === orgId)
+      .map((c) => ({
+        id: c.id,
+        provider: c.provider,
+        name: c.name,
+        baseUrl: c.baseUrl,
+        authKind: c.authKind,
+        externalId: c.externalId,
+        createdAt: c.createdAt,
+        updatedAt: c.updatedAt,
+      }));
+  }
+
+  async upsertGitConnection(
+    orgId: string,
+    input: UpsertGitConnectionInput,
+  ): Promise<GitConnection> {
+    const id = input.id ?? crypto.randomUUID();
+    const now = new Date().toISOString();
+    const connection: GitConnectionWithSecrets & { orgId: string } = {
+      id,
+      orgId,
+      provider: input.provider,
+      name: input.name,
+      baseUrl: input.baseUrl,
+      authKind: input.authKind,
+      externalId: null,
+      credentials: input.credentials,
+      webhookSecret: input.webhookSecret,
+      createdAt: this.data.get(id)?.createdAt ?? now,
+      updatedAt: now,
+    };
+    this.data.set(id, connection);
+    return {
+      id: connection.id,
+      provider: connection.provider,
+      name: connection.name,
+      baseUrl: connection.baseUrl,
+      authKind: connection.authKind,
+      externalId: connection.externalId,
+      createdAt: connection.createdAt,
+      updatedAt: connection.updatedAt,
+    };
+  }
+
+  async removeGitConnection(orgId: string, id: string): Promise<void> {
+    const c = this.data.get(id);
+    if (c && c.orgId === orgId) {
+      this.data.delete(id);
+    }
+  }
+
+  async setExternalId(
+    orgId: string,
+    id: string,
+    installationId: string,
+  ): Promise<void> {
+    const c = this.data.get(id);
+    if (c && c.orgId === orgId) {
+      c.externalId = installationId;
+      c.updatedAt = new Date().toISOString();
+    }
+  }
+
+  async clearExternalId(orgId: string, id: string): Promise<void> {
+    const c = this.data.get(id);
+    if (c && c.orgId === orgId) {
+      c.externalId = null;
+      c.updatedAt = new Date().toISOString();
+    }
+  }
+}
+
 export class InMemoryRepository implements Repository {
   apps: InMemoryAppRepo;
   servers: InMemoryServerRepo;
@@ -530,6 +627,7 @@ export class InMemoryRepository implements Repository {
   nodeEvents: InMemoryNodeEventRepo;
   registeredNodes: InMemoryRegisteredNodeRepo;
   registrationTokens: InMemoryRegistrationTokenRepo;
+  gitConnections: InMemoryGitConnectionRepo;
 
   constructor() {
     this.apps = new InMemoryAppRepo();
@@ -543,6 +641,7 @@ export class InMemoryRepository implements Repository {
     this.nodeEvents = new InMemoryNodeEventRepo();
     this.registeredNodes = new InMemoryRegisteredNodeRepo();
     this.registrationTokens = new InMemoryRegistrationTokenRepo();
+    this.gitConnections = new InMemoryGitConnectionRepo();
   }
 }
 
