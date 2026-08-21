@@ -19,7 +19,6 @@ export const POST: RequestHandler = async ({ request, cookies, locals }) => {
     locals.session.userId,
   );
   const membershipOrgIds = memberships.map((m) => m.orgId);
-
   if (!membershipOrgIds.includes(orgId)) {
     return json(
       { error: "Not a member of this organization" },
@@ -30,7 +29,7 @@ export const POST: RequestHandler = async ({ request, cookies, locals }) => {
   cookies.set(ACTIVE_ORG_COOKIE, orgId, {
     path: "/",
     httpOnly: true,
-    secure: true,
+    secure: false,
     sameSite: "lax",
     maxAge: 60 * 60 * 24 * 30,
   });

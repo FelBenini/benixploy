@@ -24,6 +24,13 @@ describe("encrypt/decrypt", () => {
     expect(decrypted).toBe(pemKey);
   });
 
+  it("round-trips a multi-KB payload", () => {
+    const payload = "x".repeat(4096);
+    const encrypted = encrypt(payload, TEST_KEY);
+    const decrypted = decrypt(encrypted, TEST_KEY);
+    expect(decrypted).toBe(payload);
+  });
+
   it("produces different ciphertexts for the same plaintext (random IV)", () => {
     const value = "test-value";
     const a = encrypt(value, TEST_KEY);

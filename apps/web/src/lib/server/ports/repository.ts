@@ -14,6 +14,11 @@ import type {
   RegistrationToken,
   CreateRegistrationTokenInput,
 } from "../domain/registration-token";
+import type {
+  GitConnection,
+  GitConnectionWithSecrets,
+  UpsertGitConnectionInput,
+} from "../domain/git-connection";
 
 export interface DbExecutor {
   insert(table: unknown): {
@@ -178,6 +183,25 @@ export interface RegistrationTokenRepository {
   pruneExpired(): Promise<void>;
 }
 
+export interface GitConnectionRepository {
+  findGitConnection(
+    orgId: string,
+    id: string,
+  ): Promise<GitConnectionWithSecrets | null>;
+  listGitConnections(orgId: string): Promise<GitConnection[]>;
+  upsertGitConnection(
+    orgId: string,
+    input: UpsertGitConnectionInput,
+  ): Promise<GitConnection>;
+  removeGitConnection(orgId: string, id: string): Promise<void>;
+  setExternalId(
+    orgId: string,
+    id: string,
+    installationId: string,
+  ): Promise<void>;
+  clearExternalId(orgId: string, id: string): Promise<void>;
+}
+
 export interface Repository {
   servers: ServerRepository;
   apps: AppRepository;
@@ -190,4 +214,5 @@ export interface Repository {
   nodeEvents: NodeEventRepository;
   registeredNodes: RegisteredNodeRepository;
   registrationTokens: RegistrationTokenRepository;
+  gitConnections: GitConnectionRepository;
 }

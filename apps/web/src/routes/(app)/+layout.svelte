@@ -6,6 +6,7 @@
   import Server from "@lucide/svelte/icons/server";
   import Settings from "@lucide/svelte/icons/settings";
   import Boxes from "@lucide/svelte/icons/boxes";
+  import GitBranch from "@lucide/svelte/icons/git-branch";
   import { page } from "$app/state";
   import { fade } from "svelte/transition";
 
@@ -38,6 +39,11 @@
       title: "Apps",
       url: "/apps",
       icon: Boxes,
+    },
+    {
+      title: "Git Sources",
+      url: "/git-sources",
+      icon: GitBranch,
     },
     {
       title: "Settings",
@@ -105,7 +111,7 @@
     <div class="page-transition grow">
       {#key page.url.pathname}
         <div
-          transition:fade={{ duration: 150 }}
+          transition:fade={{ duration: 100 }}
           class="bg-background flex flex-1 flex-col page-container"
         >
           {@render children()}
