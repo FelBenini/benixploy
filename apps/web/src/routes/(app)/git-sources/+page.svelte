@@ -150,6 +150,13 @@
               <Badge variant={conn.externalId ? "secondary" : "outline"}>
                 {conn.externalId ? "installed" : "connected"}
               </Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                href={resolve(`/git-sources/${conn.id}`)}
+              >
+                Validate
+              </Button>
               <Button variant="ghost" size="icon-sm" disabled title="Rotate secret (coming soon)">
                 <RotateCw class="size-4" />
               </Button>
