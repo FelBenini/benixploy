@@ -9,7 +9,7 @@
       label: "GitHub (App)",
       icon: "/git/github.png",
       disabled: false,
-      note: "Paste your GitHub App id, client id, private key, and a webhook secret.",
+      note: "We create and install a GitHub App for you in a few clicks.",
       card: "bg-[radial-gradient(circle_at_top_left,_#24292f21_0%,_transparent_60%),radial-gradient(circle_at_bottom_right,_#24292f10_0%,_transparent_60%)] hover:border-[#24292f]/50 hover:bg-[#24292f]/5",
       iconClass: "border-[#24292f]/20 bg-[#24292f]/10 text-[#24292f]",
     },

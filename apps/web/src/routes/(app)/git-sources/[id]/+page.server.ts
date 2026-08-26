@@ -3,6 +3,7 @@ import type { ServerLoad } from "@sveltejs/kit";
 import { createHmac } from "crypto";
 import { app } from "$lib/server/app";
 import { getGitProvider } from "$lib/server/adapters/git";
+import { getInstallUrl } from "$lib/server/adapters/git/github";
 import type {
   GitProviderClient,
   GitConnection,
@@ -43,6 +44,26 @@ export const load: ServerLoad = async ({ params, locals }) => {
   );
   const conn = connections.find((c) => c.id === params.id);
   if (!conn) return { connection: null };
+
+  let installUrl: string | null = null;
+  if (
+    conn.provider === "github" &&
+    conn.authKind === "github_app" &&
+    !conn.externalId
+  ) {
+    const full = await app.repo.gitConnections.findGitConnection(
+      locals.orgId,
+      conn.id,
+    );
+    if (full) {
+      try {
+        installUrl = await getInstallUrl(full);
+      } catch {
+        installUrl = null;
+      }
+    }
+  }
+
   return {
     connection: {
       id: conn.id,
@@ -51,6 +72,7 @@ export const load: ServerLoad = async ({ params, locals }) => {
       baseUrl: conn.baseUrl,
       authKind: conn.authKind,
       externalId: conn.externalId ?? null,
+      installUrl,
     },
   };
 };

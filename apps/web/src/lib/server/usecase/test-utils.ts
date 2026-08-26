@@ -540,6 +540,13 @@ export class InMemoryGitConnectionRepo implements GitConnectionRepository {
     return rest;
   }
 
+  async findGitConnectionById(
+    id: string,
+  ): Promise<(GitConnectionWithSecrets & { orgId: string }) | null> {
+    const c = this.data.get(id);
+    return c ?? null;
+  }
+
   async listGitConnections(orgId: string): Promise<GitConnection[]> {
     return Array.from(this.data.values())
       .filter((c) => c.orgId === orgId)

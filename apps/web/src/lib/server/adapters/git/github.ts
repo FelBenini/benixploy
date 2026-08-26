@@ -96,6 +96,40 @@ async function getInstallationToken(conn: GitConnection): Promise<string> {
   return token;
 }
 
+export async function verifyInstallation(
+  conn: GitConnection,
+  installationId: string,
+): Promise<boolean> {
+  const creds = githubCredentials(conn);
+  const jwt = getAppJwt(creds.privateKeyPem, creds.appId);
+  try {
+    await requestJson(`${apiBase(conn)}/app/installations/${installationId}`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${jwt}` },
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function getInstallUrl(conn: GitConnection): Promise<string> {
+  const creds = githubCredentials(conn);
+  const jwt = getAppJwt(creds.privateKeyPem, creds.appId);
+
+  const { body } = await requestJson(`${apiBase(conn)}/app`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${jwt}` },
+  });
+  const slug = (body as { slug?: string }).slug;
+  if (!slug) {
+    throw new Error("GitHub did not return an app slug");
+  }
+
+  const state = encodeURIComponent(conn.id);
+  return `https://github.com/apps/${slug}/installations/new?state=${state}`;
+}
+
 export const githubProviderClient: GitProviderClient = {
   provider: "github",
 
@@ -107,14 +141,12 @@ export const githubProviderClient: GitProviderClient = {
       method: "GET",
       headers: { Authorization: `Bearer ${jwt}` },
     });
-
     const name = (body as { name?: string }).name ?? "GitHub App";
     return { accountName: name };
   },
 
   async listRepositories(conn: GitConnection): Promise<RepoRef[]> {
     const token = await getInstallationToken(conn);
-
     const { body } = await requestJson(
       `${apiBase(conn)}/installation/repositories`,
       {
@@ -122,7 +154,6 @@ export const githubProviderClient: GitProviderClient = {
         headers: { Authorization: `Bearer ${token}` },
       },
     );
-
     const repos = (body as { repositories?: unknown[] }).repositories ?? [];
     return repos.map((repo) => {
       const r = repo as {

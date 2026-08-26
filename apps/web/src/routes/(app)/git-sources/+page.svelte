@@ -17,6 +17,7 @@
     baseUrl: string;
     authKind: string;
     externalId: string | null;
+    installUrl: string | null;
     createdAt: string;
   };
 
@@ -28,6 +29,8 @@
   let removing = $state<string | null>(null);
   let confirmId = $state<string | null>(null);
   let error = $state<string | null>(null);
+
+  let installedNotice = $derived(data.installed as string | null);
 
   const providerLogos: Record<string, string> = {
     github: "/git/github.png",
@@ -96,6 +99,20 @@
     <p class="text-destructive text-sm">{error}</p>
   {/if}
 
+  {#if installedNotice === "ok"}
+    <p class="text-emerald-600 text-sm">
+      GitHub App installed. The connection is now ready to use.
+    </p>
+  {:else if installedNotice === "pending"}
+    <p class="text-amber-600 text-sm">
+      Installation requested — an organization admin needs to approve it.
+    </p>
+  {:else if installedNotice === "error"}
+    <p class="text-destructive text-sm">
+      Installation could not be completed. Please try again.
+    </p>
+  {/if}
+
   {#if connections.length === 0}
     <div
       class="flex flex-col items-center justify-center gap-3 rounded-xl bg-background/10 backdrop-blur-sm ring-1 ring-foreground/10 px-6 py-16 text-center"
@@ -138,7 +155,8 @@
                   <span class="text-foreground text-sm font-medium">
                     {conn.name}
                   </span>
-                  <Badge variant="outline">{providerLabel(conn.provider)}</Badge>
+                  <Badge variant="outline">{providerLabel(conn.provider)}</Badge
+                  >
                 </div>
                 <span class="text-muted-foreground text-xs">
                   {conn.baseUrl}
@@ -150,6 +168,11 @@
               <Badge variant={conn.externalId ? "secondary" : "outline"}>
                 {conn.externalId ? "installed" : "connected"}
               </Badge>
+              {#if !conn.externalId && conn.installUrl}
+                <Button variant="secondary" size="sm" href={conn.installUrl}>
+                  Install on GitHub
+                </Button>
+              {/if}
               <Button
                 variant="ghost"
                 size="sm"
@@ -157,7 +180,12 @@
               >
                 Validate
               </Button>
-              <Button variant="ghost" size="icon-sm" disabled title="Rotate secret (coming soon)">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                disabled
+                title="Rotate secret (coming soon)"
+              >
                 <RotateCw class="size-4" />
               </Button>
               {#if confirmId === conn.id}

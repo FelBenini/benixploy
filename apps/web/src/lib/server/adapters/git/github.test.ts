@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterAll } from "vitest";
 import { createHmac, generateKeyPairSync } from "crypto";
-import { githubProviderClient } from "./github";
+import {
+  githubProviderClient,
+  getInstallUrl,
+  verifyInstallation,
+} from "./github";
 import type { GitConnection } from "../../ports/git-provider-client";
 
 const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
@@ -27,6 +31,89 @@ function githubConn(overrides?: Partial<GitConnection>): GitConnection {
     ...overrides,
   };
 }
+
+describe("getInstallUrl", () => {
+  const fetchMock = vi.fn();
+  beforeEach(() => {
+    fetchMock.mockReset();
+    vi.stubGlobal("fetch", fetchMock);
+  });
+  afterAll(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("builds the install URL from the resolved slug with state", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ slug: "benisploy" }), { status: 200 }),
+    );
+
+    const url = await getInstallUrl(githubConn({ externalId: null }));
+
+    expect(url).toBe(
+      "https://github.com/apps/benisploy/installations/new?state=conn-1",
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.github.com/app",
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
+
+  it("throws when GitHub does not return a slug", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ name: "benisploy" }), { status: 200 }),
+    );
+
+    await expect(
+      getInstallUrl(githubConn({ externalId: null })),
+    ).rejects.toThrow("GitHub did not return an app slug");
+  });
+
+  it("throws for non-github_app connections", async () => {
+    await expect(
+      getInstallUrl(
+        githubConn({
+          authKind: "token",
+          credentials: { token: "pat", username: "me" },
+        }),
+      ),
+    ).rejects.toThrow("GitHub adapter requires github_app credentials");
+  });
+});
+
+describe("verifyInstallation", () => {
+  const fetchMock = vi.fn();
+  beforeEach(() => {
+    fetchMock.mockReset();
+    vi.stubGlobal("fetch", fetchMock);
+  });
+  afterAll(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns true when the installation exists", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ id: 12345 }), { status: 200 }),
+    );
+
+    const result = await verifyInstallation(githubConn(), "12345");
+
+    expect(result).toBe(true);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.github.com/app/installations/12345",
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
+
+  it("returns false when the installation is not found", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ message: "Not Found" }), { status: 404 }),
+    );
+
+    const result = await verifyInstallation(githubConn(), "99999");
+
+    expect(result).toBe(false);
+  });
+});
 
 describe("parsePushEvent", () => {
   it("maps a valid branch push", () => {
