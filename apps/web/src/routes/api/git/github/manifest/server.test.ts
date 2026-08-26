@@ -17,7 +17,7 @@ function createRequestEvent(url: string): RequestEvent {
 }
 
 describe("buildManifest", () => {
-  it("builds a manifest with correct callback and redirect URLs", () => {
+  it("builds a manifest with correct callbacks and post-install redirect", () => {
     const manifest = buildManifest("http://localhost:5173");
 
     expect(manifest.name).toBe("benisploy");
@@ -25,9 +25,11 @@ describe("buildManifest", () => {
     expect(manifest.redirect_url).toBe(
       "http://localhost:5173/api/git/github/manifest-callback",
     );
-    expect(manifest.callback_urls).toEqual([
+    expect(manifest.setup_url).toBe(
       "http://localhost:5173/api/git/github/callback",
-    ]);
+    );
+    expect(manifest.setup_on_update).toBe(true);
+    expect(manifest.callback_urls).toBeUndefined();
     expect(manifest.hook_attributes).toEqual({
       url: "http://localhost:5173/api/git/events",
       active: false,

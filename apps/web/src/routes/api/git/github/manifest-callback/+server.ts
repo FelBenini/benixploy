@@ -37,8 +37,8 @@ export const GET: RequestHandler = async ({ url, locals }) => {
   }
 
   const created = (await res.json()) as ManifestConversion;
-  const { id, slug, client_id, pem } = created;
-  if (!id || !slug || !client_id || !pem) {
+  const { id, client_id, pem } = created;
+  if (!id || !client_id || !pem) {
     throw redirect(302, "/git-sources?error=manifest_failed");
   }
 
@@ -58,8 +58,5 @@ export const GET: RequestHandler = async ({ url, locals }) => {
     },
   );
 
-  throw redirect(
-    302,
-    `https://github.com/apps/${slug}/installations/new?state=${connection.id}`,
-  );
+  throw redirect(302, `/git-sources/new?step=install&id=${connection.id}`);
 };

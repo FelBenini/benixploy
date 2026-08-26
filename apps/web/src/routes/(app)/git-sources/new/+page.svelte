@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { page } from "$app/state";
   import * as Wizard from "$lib/components/ui/wizard/index.js";
   import * as Steps from "./components/index.js";
   import Button from "$lib/components/ui/button/button.svelte";
@@ -6,6 +7,7 @@
   import { ArrowLeft } from "@lucide/svelte";
   import GitBranch from "@lucide/svelte/icons/git-branch";
   import Key from "@lucide/svelte/icons/key";
+  import CheckCircle from "@lucide/svelte/icons/check-circle";
 
   const steps: WizardStep[] = [
     {
@@ -18,9 +20,20 @@
       description: "We register a GitHub App for you.",
       icon: Key,
     },
+    {
+      title: "Install",
+      description: "Install the app on GitHub.",
+      icon: CheckCircle,
+    },
   ];
 
+  let { data } = $props();
+
   let step = $state(0);
+
+  if (page.url.searchParams.get("step") === "install") {
+    step = 2;
+  }
 
   function selectProvider(provider: string) {
     if (provider !== "github") return;
@@ -49,6 +62,11 @@
         <Steps.ProviderStep onSelect={selectProvider} />
       {:else if step === 1}
         <Steps.CredentialsStep />
+      {:else if step === 2}
+        <Steps.InstallStep
+          installUrl={data.install?.installUrl ?? null}
+          alreadyInstalled={data.install?.alreadyInstalled ?? false}
+        />
       {/if}
     </Wizard.Content>
   </Wizard.Root>

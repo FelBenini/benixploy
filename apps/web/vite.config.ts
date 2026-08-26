@@ -7,10 +7,15 @@ export default defineConfig({
   server: {
     host: "0.0.0.0",
     port: 5173,
+    allowedHosts: ["medications-performance-generation-anchor.trycloudflare.com"]
   },
   ssr: {
     // LayerChart v2 ships raw .svelte components in its dist; Node can't
     // import them at runtime, so Vite must compile them for SSR.
     noExternal: ["layerchart"],
   },
+  preview:
+  {
+    allowedHosts: ["conferencing-primarily-bidder-breakdown.trycloudflare.com"]
+  }
 });

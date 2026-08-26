@@ -69,7 +69,7 @@ describe("GET /api/git/github/manifest-callback", () => {
     });
   });
 
-  it("creates the connection and redirects to install on success", async () => {
+  it("creates the connection and redirects to the wizard install step", async () => {
     fetchMock.mockResolvedValueOnce(
       new Response(
         JSON.stringify({
@@ -97,8 +97,7 @@ describe("GET /api/git/github/manifest-callback", () => {
     const event = createRequestEvent("?code=valid");
     await expect(GET(event)).rejects.toMatchObject({
       status: 302,
-      location:
-        "https://github.com/apps/benisploy/installations/new?state=conn-1",
+      location: "/git-sources/new?step=install&id=conn-1",
     });
 
     expect(mockUpsertGitConnection).toHaveBeenCalledWith("org-1", {
