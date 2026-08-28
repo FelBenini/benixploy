@@ -42,20 +42,36 @@ describe("getInstallUrl", () => {
     vi.unstubAllGlobals();
   });
 
-  it("builds the install URL from the resolved slug with state", async () => {
+  it("builds the install URL from the resolved slug with the state nonce", async () => {
     fetchMock.mockResolvedValueOnce(
       new Response(JSON.stringify({ slug: "benisploy" }), { status: 200 }),
     );
 
-    const url = await getInstallUrl(githubConn({ externalId: null }));
+    const url = await getInstallUrl(
+      githubConn({ externalId: null }),
+      "nonce-123",
+    );
 
     expect(url).toBe(
-      "https://github.com/apps/benisploy/installations/new?state=conn-1",
+      "https://github.com/apps/benisploy/installations/new?state=nonce-123",
     );
     expect(fetchMock).toHaveBeenCalledWith(
       "https://api.github.com/app",
       expect.objectContaining({ method: "GET" }),
     );
+  });
+
+  it("URL-encodes the state nonce", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ slug: "benisploy" }), { status: 200 }),
+    );
+
+    const url = await getInstallUrl(
+      githubConn({ externalId: null }),
+      "a/b c?d",
+    );
+
+    expect(url).toContain("?state=a%2Fb%20c%3Fd");
   });
 
   it("throws when GitHub does not return a slug", async () => {
@@ -64,7 +80,7 @@ describe("getInstallUrl", () => {
     );
 
     await expect(
-      getInstallUrl(githubConn({ externalId: null })),
+      getInstallUrl(githubConn({ externalId: null }), "nonce-123"),
     ).rejects.toThrow("GitHub did not return an app slug");
   });
 
@@ -75,6 +91,7 @@ describe("getInstallUrl", () => {
           authKind: "token",
           credentials: { token: "pat", username: "me" },
         }),
+        "nonce-123",
       ),
     ).rejects.toThrow("GitHub adapter requires github_app credentials");
   });

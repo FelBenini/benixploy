@@ -21,6 +21,18 @@ export const GET: RequestHandler = async ({ url, locals }) => {
     throw redirect(302, "/git-sources?error=manifest_failed");
   }
 
+  // Anti-forgery check: consume the state bound to this user's session when
+  // they started the GitHub App creation flow. Refuse to exchange the code
+  // unless a pending, unexpired state exists — otherwise an attacker could
+  // link their own GitHub App into this organization.
+  const consumed = await app.oauthStates.consumeManifestState(
+    locals.session.userId,
+    locals.orgId,
+  );
+  if (!consumed) {
+    throw redirect(302, "/git-sources?error=manifest_failed");
+  }
+
   const res = await fetch(
     `https://api.github.com/app-manifests/${code}/conversions`,
     {

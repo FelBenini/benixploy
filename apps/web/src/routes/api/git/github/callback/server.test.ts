@@ -4,6 +4,7 @@ import type { RequestEvent } from "./$types";
 const mockFindGitConnectionById = vi.hoisted(() => vi.fn());
 const mockSetExternalId = vi.hoisted(() => vi.fn());
 const mockVerifyInstallation = vi.hoisted(() => vi.fn());
+const mockConsumeInstallState = vi.hoisted(() => vi.fn());
 
 vi.mock("$lib/server/app", () => ({
   app: {
@@ -12,6 +13,9 @@ vi.mock("$lib/server/app", () => ({
         findGitConnectionById: mockFindGitConnectionById,
         setExternalId: mockSetExternalId,
       },
+    },
+    oauthStates: {
+      consumeInstallState: mockConsumeInstallState,
     },
   },
 }));
@@ -22,7 +26,31 @@ vi.mock("$lib/server/adapters/git/github", () => ({
 
 const { GET } = await import("./+server");
 
-function createRequestEvent(query: string): RequestEvent {
+const installClaims = {
+  purpose: "install",
+  orgId: "org-1",
+  connectionId: "conn-1",
+} as const;
+
+const connection = {
+  id: "conn-1",
+  orgId: "org-1",
+  provider: "github",
+  name: "GitHub App",
+  baseUrl: "https://github.com",
+  authKind: "github_app",
+  externalId: null,
+  createdAt: "2025-01-01T00:00:00.000Z",
+  updatedAt: "2025-01-01T00:00:00.000Z",
+  credentials: {
+    appId: "app-1",
+    clientId: "client-1",
+    privateKeyPem: "pem",
+  },
+  webhookSecret: "secret",
+};
+
+function createRequestEvent(query: string, locals?: Record<string, unknown>) {
   return {
     request: new Request(
       `http://localhost:5173/api/git/github/callback${query}`,
@@ -34,13 +62,26 @@ function createRequestEvent(query: string): RequestEvent {
       delete: vi.fn(),
       serialize: vi.fn(),
     },
-    locals: {},
+    locals: locals ?? { session: { userId: "user-1" }, orgId: "org-1" },
   } as unknown as RequestEvent;
 }
 
 describe("GET /api/git/github/callback", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockConsumeInstallState.mockResolvedValue(installClaims);
+  });
+
+  it("redirects to login when unauthenticated", async () => {
+    const event = createRequestEvent(
+      "?setup_action=install&installation_id=123&state=nonce-1",
+      { session: null, orgId: null },
+    );
+    await expect(GET(event)).rejects.toMatchObject({
+      status: 302,
+      location: "/login",
+    });
+    expect(mockConsumeInstallState).not.toHaveBeenCalled();
   });
 
   it("redirects with pending when setup_action is request_pending", async () => {
@@ -51,6 +92,7 @@ describe("GET /api/git/github/callback", () => {
       status: 302,
       location: "/git-sources?installed=pending",
     });
+    expect(mockConsumeInstallState).not.toHaveBeenCalled();
   });
 
   it("redirects with error when setup_action is unexpected", async () => {
@@ -89,10 +131,39 @@ describe("GET /api/git/github/callback", () => {
     });
   });
 
+  it("redirects with error when the state is unknown, expired, or reused", async () => {
+    mockConsumeInstallState.mockResolvedValue(null);
+    const event = createRequestEvent(
+      "?setup_action=install&installation_id=123&state=forged-nonce",
+    );
+    await expect(GET(event)).rejects.toMatchObject({
+      status: 302,
+      location: "/git-sources?installed=error&reason=invalid_state",
+    });
+    expect(mockConsumeInstallState).toHaveBeenCalledWith("forged-nonce");
+    expect(mockFindGitConnectionById).not.toHaveBeenCalled();
+    expect(mockSetExternalId).not.toHaveBeenCalled();
+  });
+
+  it("redirects with error when the state belongs to another organization", async () => {
+    mockConsumeInstallState.mockResolvedValue({
+      ...installClaims,
+      orgId: "org-other",
+    });
+    const event = createRequestEvent(
+      "?setup_action=install&installation_id=123&state=nonce-1",
+    );
+    await expect(GET(event)).rejects.toMatchObject({
+      status: 302,
+      location: "/git-sources?installed=error&reason=forbidden",
+    });
+    expect(mockSetExternalId).not.toHaveBeenCalled();
+  });
+
   it("redirects with error when connection is unknown", async () => {
     mockFindGitConnectionById.mockResolvedValue(null);
     const event = createRequestEvent(
-      "?setup_action=install&installation_id=123&state=conn-1",
+      "?setup_action=install&installation_id=123&state=nonce-1",
     );
     await expect(GET(event)).rejects.toMatchObject({
       status: 302,
@@ -103,25 +174,9 @@ describe("GET /api/git/github/callback", () => {
 
   it("sets externalId and redirects with ok on success", async () => {
     mockVerifyInstallation.mockResolvedValue(true);
-    mockFindGitConnectionById.mockResolvedValue({
-      id: "conn-1",
-      orgId: "org-1",
-      provider: "github",
-      name: "GitHub App",
-      baseUrl: "https://github.com",
-      authKind: "github_app",
-      externalId: null,
-      createdAt: "2025-01-01T00:00:00.000Z",
-      updatedAt: "2025-01-01T00:00:00.000Z",
-      credentials: {
-        appId: "app-1",
-        clientId: "client-1",
-        privateKeyPem: "pem",
-      },
-      webhookSecret: "secret",
-    });
+    mockFindGitConnectionById.mockResolvedValue(connection);
     const event = createRequestEvent(
-      "?setup_action=install&installation_id=123&state=conn-1",
+      "?setup_action=install&installation_id=123&state=nonce-1",
     );
     await expect(GET(event)).rejects.toMatchObject({
       status: 302,
@@ -136,25 +191,9 @@ describe("GET /api/git/github/callback", () => {
 
   it("redirects with error when installation verification fails", async () => {
     mockVerifyInstallation.mockResolvedValue(false);
-    mockFindGitConnectionById.mockResolvedValue({
-      id: "conn-1",
-      orgId: "org-1",
-      provider: "github",
-      name: "GitHub App",
-      baseUrl: "https://github.com",
-      authKind: "github_app",
-      externalId: null,
-      createdAt: "2025-01-01T00:00:00.000Z",
-      updatedAt: "2025-01-01T00:00:00.000Z",
-      credentials: {
-        appId: "app-1",
-        clientId: "client-1",
-        privateKeyPem: "pem",
-      },
-      webhookSecret: "secret",
-    });
+    mockFindGitConnectionById.mockResolvedValue(connection);
     const event = createRequestEvent(
-      "?setup_action=install&installation_id=123&state=conn-1",
+      "?setup_action=install&installation_id=123&state=nonce-1",
     );
     await expect(GET(event)).rejects.toMatchObject({
       status: 302,
@@ -166,24 +205,11 @@ describe("GET /api/git/github/callback", () => {
   it("accepts setup_action=update as a success", async () => {
     mockVerifyInstallation.mockResolvedValue(true);
     mockFindGitConnectionById.mockResolvedValue({
-      id: "conn-1",
-      orgId: "org-1",
-      provider: "github",
-      name: "GitHub App",
-      baseUrl: "https://github.com",
-      authKind: "github_app",
+      ...connection,
       externalId: "123",
-      createdAt: "2025-01-01T00:00:00.000Z",
-      updatedAt: "2025-01-01T00:00:00.000Z",
-      credentials: {
-        appId: "app-1",
-        clientId: "client-1",
-        privateKeyPem: "pem",
-      },
-      webhookSecret: "secret",
     });
     const event = createRequestEvent(
-      "?setup_action=update&installation_id=456&state=conn-1",
+      "?setup_action=update&installation_id=456&state=nonce-1",
     );
     await expect(GET(event)).rejects.toMatchObject({
       status: 302,

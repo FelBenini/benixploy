@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { RequestEvent } from "./$types";
 
 const mockUpsertGitConnection = vi.hoisted(() => vi.fn());
+const mockConsumeManifestState = vi.hoisted(() => vi.fn());
 
 vi.mock("$lib/server/app", () => ({
   app: {
@@ -9,6 +10,9 @@ vi.mock("$lib/server/app", () => ({
       gitConnections: {
         upsertGitConnection: mockUpsertGitConnection,
       },
+    },
+    oauthStates: {
+      consumeManifestState: mockConsumeManifestState,
     },
   },
 }));
@@ -29,7 +33,10 @@ function createRequestEvent(query: string, locals?: Record<string, unknown>) {
       delete: vi.fn(),
       serialize: vi.fn(),
     },
-    locals: locals ?? { session: { id: "sess-1" }, orgId: "org-1" },
+    locals: locals ?? {
+      session: { userId: "user-1" },
+      orgId: "org-1",
+    },
   } as unknown as RequestEvent;
 }
 
@@ -39,6 +46,7 @@ describe("GET /api/git/github/manifest-callback", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubGlobal("fetch", fetchMock);
+    mockConsumeManifestState.mockResolvedValue(true);
   });
 
   it("redirects to login when unauthenticated", async () => {
@@ -50,6 +58,7 @@ describe("GET /api/git/github/manifest-callback", () => {
       status: 302,
       location: "/login",
     });
+    expect(mockConsumeManifestState).not.toHaveBeenCalled();
   });
 
   it("redirects with error when code is missing", async () => {
@@ -58,6 +67,39 @@ describe("GET /api/git/github/manifest-callback", () => {
       status: 302,
       location: "/git-sources?error=manifest_failed",
     });
+    expect(mockConsumeManifestState).not.toHaveBeenCalled();
+  });
+
+  it("refuses to exchange the code when no pending state exists", async () => {
+    mockConsumeManifestState.mockResolvedValue(false);
+    const event = createRequestEvent("?code=stolen");
+    await expect(GET(event)).rejects.toMatchObject({
+      status: 302,
+      location: "/git-sources?error=manifest_failed",
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(mockUpsertGitConnection).not.toHaveBeenCalled();
+  });
+
+  it("consumes the state bound to the session's org before exchanging", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          id: 4719981,
+          client_id: "Iv1.abcdef",
+          pem: "-----BEGIN RSA PRIVATE KEY-----\nxxx",
+        }),
+        { status: 201 },
+      ),
+    );
+    mockUpsertGitConnection.mockResolvedValue({ id: "conn-1" });
+
+    const event = createRequestEvent("?code=valid");
+    await expect(GET(event)).rejects.toMatchObject({
+      status: 302,
+      location: "/git-sources/new?step=install&id=conn-1",
+    });
+    expect(mockConsumeManifestState).toHaveBeenCalledWith("user-1", "org-1");
   });
 
   it("redirects with expired when conversion fails", async () => {

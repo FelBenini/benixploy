@@ -20,6 +20,9 @@ export const load: ServerLoad = async ({ locals, url }) => {
     };
   }
 
-  const installUrl = await getInstallUrl(conn).catch(() => null);
+  const installUrl = await app.oauthStates
+    .createInstallState(locals.orgId, conn.id)
+    .then((nonce) => getInstallUrl(conn, nonce))
+    .catch(() => null);
   return { install: { id: conn.id, alreadyInstalled: false, installUrl } };
 };

@@ -113,7 +113,10 @@ export async function verifyInstallation(
   }
 }
 
-export async function getInstallUrl(conn: GitConnection): Promise<string> {
+export async function getInstallUrl(
+  conn: GitConnection,
+  state: string,
+): Promise<string> {
   const creds = githubCredentials(conn);
   const jwt = getAppJwt(creds.privateKeyPem, creds.appId);
 
@@ -126,8 +129,7 @@ export async function getInstallUrl(conn: GitConnection): Promise<string> {
     throw new Error("GitHub did not return an app slug");
   }
 
-  const state = encodeURIComponent(conn.id);
-  return `https://github.com/apps/${slug}/installations/new?state=${state}`;
+  return `https://github.com/apps/${slug}/installations/new?state=${encodeURIComponent(state)}`;
 }
 
 export const githubProviderClient: GitProviderClient = {

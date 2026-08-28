@@ -21,7 +21,8 @@ export const load: ServerLoad = async ({ locals, url }) => {
         );
         if (full) {
           try {
-            return { ...c, installUrl: await getInstallUrl(full) };
+            const state = await app.oauthStates.createInstallState(orgId, c.id);
+            return { ...c, installUrl: await getInstallUrl(full, state) };
           } catch {
             return c;
           }

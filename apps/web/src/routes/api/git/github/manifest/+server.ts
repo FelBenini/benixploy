@@ -1,4 +1,6 @@
+import { redirect } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
+import { app } from "$lib/server/app";
 
 function buildManifest(origin: string): Record<string, unknown> {
   return {
@@ -8,7 +10,7 @@ function buildManifest(origin: string): Record<string, unknown> {
 
     hook_attributes: {
       url: `${origin}/api/git/events`,
-      active: true,
+      active: false,
     },
 
     // Used after the App itself is created from the manifest.
@@ -31,7 +33,19 @@ function buildManifest(origin: string): Record<string, unknown> {
   };
 }
 
-export const GET: RequestHandler = ({ url }) => {
+export const GET: RequestHandler = async ({ url, locals }) => {
+  if (!locals.session || !locals.orgId) {
+    throw redirect(302, "/login");
+  }
+
+  // Bind an anti-forgery state to this user's session/organization. GitHub
+  // does not echo state on manifest callbacks, so the server-side record IS
+  // the state: manifest-callback consumes it before exchanging the code.
+  await app.oauthStates.createManifestState(
+    locals.session.userId,
+    locals.orgId,
+  );
+
   const manifest = JSON.stringify(buildManifest(url.origin));
   const manifestForScript = JSON.stringify(manifest);
 
