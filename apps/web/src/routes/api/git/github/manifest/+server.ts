@@ -8,7 +8,7 @@ function buildManifest(origin: string): Record<string, unknown> {
 
     hook_attributes: {
       url: `${origin}/api/git/events`,
-      active: false,
+      active: true,
     },
 
     // Used after the App itself is created from the manifest.

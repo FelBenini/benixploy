@@ -1,6 +1,6 @@
 <script lang="ts">
   import { resolve } from "$app/paths";
-  import { Button } from "$lib/components/ui/button";
+  import RainbowButton from "$lib/components/ui/rainbow-button/rainbow-button.svelte";
 
   let {
     installUrl,
@@ -8,27 +8,56 @@
   }: { installUrl: string | null; alreadyInstalled?: boolean } = $props();
 </script>
 
-<div class="flex flex-col gap-3">
+<div class="flex flex-col gap-6">
   {#if alreadyInstalled}
-    <p class="text-muted-foreground text-sm">
-      This GitHub App is already installed. You can manage it from Git Sources.
-    </p>
-    <div>
-      <Button href={resolve("/git-sources")}>Go to Git Sources</Button>
+    <div class="flex flex-col gap-1">
+      <p class="text-muted-foreground text-sm">
+        Your GitHub App is already installed and connected to Benisploy.
+      </p>
+      <p class="text-muted-foreground text-sm">
+        You can manage your connected GitHub repositories and Git sources from
+        the Git Sources page.
+      </p>
+    </div>
+
+    <div class="w-full">
+      <RainbowButton href={resolve("/git-sources")} class="w-full rounded">
+        Go to Git Sources
+      </RainbowButton>
     </div>
   {:else if installUrl}
-    <p class="text-muted-foreground text-sm">
-      Your GitHub App was created. Install it on GitHub to start deploying.
-    </p>
-    <div>
-      <Button href={installUrl}>Install on GitHub</Button>
+    <div class="flex flex-col gap-1">
+      <p class="text-muted-foreground text-sm">
+        Your GitHub App is ready. Install it to connect your repositories with
+        Benisploy and enable automated deployments.
+      </p>
+      <p class="text-muted-foreground text-sm">
+        Once installed, Benisploy can securely access your selected repositories
+        and automatically respond to changes, so your deployments stay in sync
+        with your code.
+      </p>
+    </div>
+
+    <div class="w-full">
+      <RainbowButton href={installUrl} class="w-full rounded">
+        Install on GitHub
+      </RainbowButton>
     </div>
   {:else}
-    <p class="text-destructive text-sm">
-      Could not resolve the GitHub App. Please go back and try again.
-    </p>
-    <div>
-      <Button href={resolve("/git-sources")}>Go to Git Sources</Button>
+    <div class="flex flex-col gap-1">
+      <p class="text-destructive text-sm">
+        We couldn't find the GitHub App that was just created.
+      </p>
+      <p class="text-muted-foreground text-sm">
+        Please go back to the previous step and create the GitHub App again. If
+        the problem persists, check your GitHub App configuration.
+      </p>
+    </div>
+
+    <div class="w-full">
+      <RainbowButton href={resolve("/git-sources")} class="w-full rounded">
+        Go to Git Sources
+      </RainbowButton>
     </div>
   {/if}
 </div>
