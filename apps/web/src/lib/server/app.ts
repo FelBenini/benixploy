@@ -20,6 +20,7 @@ import { hashPassword, verifyPassword } from "$lib/server/auth/password";
 import { ENCRYPTION_KEY, REDIS_URL } from "$app/env/private";
 import { dev } from "$app/environment";
 import { createOAuthStateStore } from "$lib/server/adapters/oauth-state";
+import { Redis } from "ioredis";
 
 const hasEncryption = ENCRYPTION_KEY != null && ENCRYPTION_KEY.length > 0;
 const encryptKey = hasEncryption
@@ -30,7 +31,19 @@ const decryptKey = hasEncryption
   : undefined;
 const repo = new DrizzleRepository(db, encryptKey, decryptKey);
 
-const oauthStates = createOAuthStateStore(REDIS_URL, dev);
+const isRedisConfigured = REDIS_URL != null && REDIS_URL.length > 0;
+const redis = isRedisConfigured
+  ? new Redis(REDIS_URL as string, {
+      lazyConnect: true,
+      connectTimeout: 5_000,
+      maxRetriesPerRequest: 1,
+    })
+  : null;
+redis?.on("error", (err) => {
+  console.error("redis error:", err.message);
+});
+
+const oauthStates = createOAuthStateStore(redis, dev);
 
 const nodeSshClient = new SshNodeCommandClient(async (serverId: string) => {
   const server = await repo.servers.getByIdAny(serverId);
@@ -77,6 +90,7 @@ const retentionInterval = setInterval(async () => {
 
 export const app = {
   db,
+  redis,
   repo,
   oauthStates,
   nodeSshClient,
