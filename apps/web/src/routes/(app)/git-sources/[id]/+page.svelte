@@ -17,6 +17,7 @@
     baseUrl: string;
     authKind: string;
     externalId: string | null;
+    installUrl: string | null;
   };
 
   type Outcome = {
@@ -73,6 +74,11 @@
         <Badge variant={connection.externalId ? "secondary" : "outline"}>
           {connection.externalId ? "installed" : "connected"}
         </Badge>
+        {#if !connection.externalId && connection.installUrl}
+          <Button variant="secondary" size="sm" href={connection.installUrl}>
+            Install on GitHub connection.installUrl
+          </Button>
+        {/if}
       </div>
     </div>
 
@@ -156,7 +162,11 @@
       title="resolveCloneAuth"
       description="Builds an authenticated clone URL (token masked in the output)."
     >
-      <form method="POST" action="?/resolveCloneAuth" class="flex flex-col gap-3">
+      <form
+        method="POST"
+        action="?/resolveCloneAuth"
+        class="flex flex-col gap-3"
+      >
         <Field.FieldGroup>
           <Field.Field>
             <Field.FieldLabel for="rca-repo">repoSlug</Field.FieldLabel>
@@ -176,7 +186,11 @@
       title="verifyWebhookSignature"
       description="Verifies an HMAC-SHA256 signature over the raw webhook body."
     >
-      <form method="POST" action="?/verifyWebhookSignature" class="flex flex-col gap-3">
+      <form
+        method="POST"
+        action="?/verifyWebhookSignature"
+        class="flex flex-col gap-3"
+      >
         <Field.FieldGroup>
           <Field.Field>
             <Field.FieldLabel for="vws-body">raw body</Field.FieldLabel>
@@ -185,11 +199,12 @@
               name="rawBody"
               rows={5}
               class="border-input focus-visible:border-ring focus-visible:ring-ring/50 w-full min-w-0 resize-y rounded border bg-transparent px-2.5 py-2 font-mono text-xs outline-none transition-colors placeholder:text-muted-foreground focus-visible:ring-3"
-              placeholder='&#123;"ref":"refs/heads/main","after":"abc123"&#125;'
             ></textarea>
           </Field.Field>
           <Field.Field>
-            <Field.FieldLabel for="vws-sig">signature (optional)</Field.FieldLabel>
+            <Field.FieldLabel for="vws-sig"
+              >signature (optional)</Field.FieldLabel
+            >
             <Input
               id="vws-sig"
               name="signature"
@@ -223,7 +238,6 @@
               name="rawBody"
               rows={8}
               class="border-input focus-visible:border-ring focus-visible:ring-ring/50 w-full min-w-0 resize-y rounded border bg-transparent px-2.5 py-2 font-mono text-xs outline-none transition-colors placeholder:text-muted-foreground focus-visible:ring-3"
-              placeholder='&#123;"ref":"refs/heads/main","after":"abc123","repository":&#123;"full_name":"owner/repo"&#125;&#125;'
             ></textarea>
           </Field.Field>
         </Field.FieldGroup>

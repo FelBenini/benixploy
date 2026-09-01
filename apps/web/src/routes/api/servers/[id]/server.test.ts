@@ -103,7 +103,7 @@ describe("GET /api/servers/[id]", () => {
     expect(mockServerGet).toHaveBeenCalledWith("org-1", "nonexistent");
   });
 
-  it("returns 200 with server data", async () => {
+  it("returns 200 with server data, never the SSH private key", async () => {
     const server = serverFixture();
     mockServerGet.mockResolvedValue(server);
 
@@ -112,7 +112,8 @@ describe("GET /api/servers/[id]", () => {
 
     expect(response.status).toBe(200);
     const body = await response.json();
-    expect(body.data).toEqual(server);
+    expect(body.data).toEqual({ ...server, sshPrivateKey: undefined });
+    expect(body.data.sshPrivateKey).toBeUndefined();
     expect(mockServerGet).toHaveBeenCalledWith("org-1", "server-1");
   });
 });
@@ -197,7 +198,8 @@ describe("PATCH /api/servers/[id]", () => {
 
     expect(response.status).toBe(200);
     const body = await response.json();
-    expect(body.data).toEqual(updated);
+    expect(body.data).toEqual({ ...updated, sshPrivateKey: undefined });
+    expect(body.data.sshPrivateKey).toBeUndefined();
     expect(mockUpdateConnection).toHaveBeenCalledWith("org-1", "server-1", {
       address: "10.0.0.1",
     });

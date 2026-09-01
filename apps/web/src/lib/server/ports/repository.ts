@@ -188,6 +188,9 @@ export interface GitConnectionRepository {
     orgId: string,
     id: string,
   ): Promise<GitConnectionWithSecrets | null>;
+  findGitConnectionById(
+    id: string,
+  ): Promise<(GitConnectionWithSecrets & { orgId: string }) | null>;
   listGitConnections(orgId: string): Promise<GitConnection[]>;
   upsertGitConnection(
     orgId: string,

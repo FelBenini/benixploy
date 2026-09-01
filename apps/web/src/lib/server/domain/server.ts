@@ -100,6 +100,17 @@ export type UpdateServerInput = z.infer<typeof UpdateServerInputSchema>;
 
 export type Server = z.infer<typeof ServerSchema>;
 
+/**
+ * Server shape safe to return to the browser. `sshPrivateKey` is a
+ * root-equivalent credential and must never cross the API boundary.
+ */
+export type PublicServer = Omit<Server, "sshPrivateKey">;
+
+export function toPublicServer(server: Server): PublicServer {
+  const { sshPrivateKey: _sshPrivateKey, ...publicServer } = server;
+  return publicServer;
+}
+
 export const ServerStatusReportSchema = z.object({
   cpuPercent: z
     .number()

@@ -1,9 +1,8 @@
 <script lang="ts">
   import { scaleTime } from "d3-scale";
-  import { curveNatural } from "d3-shape";
   import { LineChart } from "layerchart";
-  import * as Chart from "$lib/components/ui/chart/index.js";
-  import type { StatsPoint } from "./types.js";
+  import * as Chart from "$lib/components/ui/chart/index";
+  import type { StatsPoint } from "./types";
 
   let { stats, range }: { stats: StatsPoint[]; range: string } = $props();
 
@@ -47,7 +46,6 @@
       props={{
         xAxis: { format: timeTickFormat },
         yAxis: { format: percentFormat },
-        spline: { curve: curveNatural, motion: "tween", strokeWidth: 2 },
       }}
       series={[
         {

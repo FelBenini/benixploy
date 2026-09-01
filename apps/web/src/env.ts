@@ -6,4 +6,7 @@ export const variables = defineEnvVars({
   ENCRYPTION_KEY: {
     schema: z.string().optional(),
   },
+  REDIS_URL: {
+    schema: z.string().optional(),
+  },
 });

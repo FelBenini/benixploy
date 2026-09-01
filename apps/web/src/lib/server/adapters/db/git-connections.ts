@@ -52,6 +52,26 @@ export class DrizzleGitConnectionRepository implements GitConnectionRepository {
     return { ...toDomain(row), credentials, webhookSecret };
   }
 
+  async findGitConnectionById(
+    id: string,
+  ): Promise<(GitConnectionWithSecrets & { orgId: string }) | null> {
+    const [row] = await this.db
+      .select()
+      .from(gitConnections)
+      .where(eq(gitConnections.id, id))
+      .limit(1);
+    if (!row) return null;
+
+    const credentials = this.decryptValue
+      ? JSON.parse(this.decryptValue(row.credentialsEnc))
+      : JSON.parse(row.credentialsEnc);
+    const webhookSecret = this.decryptValue
+      ? this.decryptValue(row.webhookSecretEnc)
+      : row.webhookSecretEnc;
+
+    return { ...toDomain(row), credentials, webhookSecret, orgId: row.orgId };
+  }
+
   async listGitConnections(orgId: string): Promise<GitConnection[]> {
     const rows = await this.db
       .select()
