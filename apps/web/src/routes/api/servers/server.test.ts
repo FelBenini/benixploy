@@ -108,7 +108,7 @@ describe("POST /api/servers", () => {
     expect(body.details).toBeDefined();
   });
 
-  it("returns 201 with server data on success", async () => {
+  it("returns 201 with server data, never the SSH private key", async () => {
     const createdServer = {
       id: "server-1",
       ...validInput,
@@ -127,7 +127,8 @@ describe("POST /api/servers", () => {
 
     expect(response.status).toBe(201);
     const body = await response.json();
-    expect(body.data).toEqual(createdServer);
+    expect(body.data).toEqual({ ...createdServer, sshPrivateKey: undefined });
+    expect(body.data.sshPrivateKey).toBeUndefined();
     expect(mockRegisterServer).toHaveBeenCalledWith("org-1", validInputParsed);
   });
 });

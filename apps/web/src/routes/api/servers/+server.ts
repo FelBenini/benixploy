@@ -1,6 +1,9 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { CreateServerInputSchema } from "$lib/server/domain/server";
+import {
+  CreateServerInputSchema,
+  toPublicServer,
+} from "$lib/server/domain/server";
 import { app } from "$lib/server/app";
 
 export const GET: RequestHandler = async ({ locals }) => {
@@ -9,7 +12,7 @@ export const GET: RequestHandler = async ({ locals }) => {
   }
 
   const servers = await app.repo.servers.list(locals.orgId);
-  return json({ data: servers });
+  return json({ data: servers.map(toPublicServer) });
 };
 
 export const POST: RequestHandler = async ({ request, locals }) => {
@@ -33,5 +36,5 @@ export const POST: RequestHandler = async ({ request, locals }) => {
   }
 
   const server = await app.useCases.registerServer(locals.orgId, parsed.data);
-  return json({ data: server }, { status: 201 });
+  return json({ data: toPublicServer(server) }, { status: 201 });
 };

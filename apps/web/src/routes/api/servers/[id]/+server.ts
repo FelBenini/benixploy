@@ -1,7 +1,10 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { app } from "$lib/server/app";
-import { UpdateServerInputSchema } from "$lib/server/domain/server";
+import {
+  UpdateServerInputSchema,
+  toPublicServer,
+} from "$lib/server/domain/server";
 
 export const GET: RequestHandler = async ({ locals, params }) => {
   if (!locals.session || !locals.orgId) {
@@ -13,7 +16,7 @@ export const GET: RequestHandler = async ({ locals, params }) => {
     return json({ error: "Server not found" }, { status: 404 });
   }
 
-  return json({ data: server });
+  return json({ data: toPublicServer(server) });
 };
 
 export const PATCH: RequestHandler = async ({ request, locals, params }) => {
@@ -46,5 +49,5 @@ export const PATCH: RequestHandler = async ({ request, locals, params }) => {
     params.id,
     parsed.data,
   );
-  return json({ data: updated });
+  return json({ data: toPublicServer(updated) });
 };
