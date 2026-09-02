@@ -4,7 +4,6 @@
   import Boxes from "@lucide/svelte/icons/boxes";
   import Plus from "@lucide/svelte/icons/plus";
   import AppCard from "./components/app-card.svelte";
-  import IconPlaceholder from "$lib/components/icon-placeholder/icon-placeholder.svelte";
 
   let { data } = $props();
 
