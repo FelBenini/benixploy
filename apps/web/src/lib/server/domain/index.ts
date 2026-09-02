@@ -8,3 +8,4 @@ export * from "./session";
 export * from "./org";
 export * from "./org-membership";
 export * from "./git-connection";
+export * from "./git-source";

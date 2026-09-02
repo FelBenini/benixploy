@@ -15,6 +15,7 @@ export const apps = pgTable(
     name: text().notNull(),
     kind: text().notNull().default("stateless"),
     status: text().notNull().default("pending"),
+    activeColor: text("active_color"),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },

@@ -12,3 +12,4 @@ export { nodeEvents, nodeStats } from "./node-events";
 export { registeredNodes } from "./registered-nodes";
 export { registrationTokens } from "./registration-tokens";
 export { gitConnections } from "./git-connections";
+export { gitSources } from "./git-sources";

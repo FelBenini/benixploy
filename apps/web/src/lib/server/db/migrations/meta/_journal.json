@@ -29,6 +29,13 @@
       "when": 1787264201292,
       "tag": "0003_slippery_screwball",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1788384898962,
+      "tag": "0004_add_git_sources",
+      "breakpoints": true
     }
   ]
 }
