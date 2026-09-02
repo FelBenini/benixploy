@@ -1,8 +1,10 @@
 import { eq, and } from "drizzle-orm";
-import type { AppRepository } from "../../ports/repository";
+import type { AppRepository, AppWithSource } from "../../ports/repository";
 import type { App } from "../../domain/app";
+import type { ActiveColor } from "../../domain/git-source";
+import type { GitProvider } from "../../domain/git-connection";
 import type { DrizzleDB } from "./drizzle-repository";
-import { apps } from "../../db/schema";
+import { apps, gitSources } from "../../db/schema";
 
 function toDomain(row: typeof apps.$inferSelect): App {
   return {
@@ -11,6 +13,7 @@ function toDomain(row: typeof apps.$inferSelect): App {
     kind: row.kind as App["kind"],
     serverId: row.serverId,
     status: row.status as App["status"],
+    activeColor: row.activeColor as ActiveColor | null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -48,6 +51,40 @@ export class DrizzleAppRepository implements AppRepository {
   async list(orgId: string): Promise<App[]> {
     const rows = await this.db.select().from(apps).where(eq(apps.orgId, orgId));
     return rows.map(toDomain);
+  }
+
+  async listWithSources(orgId: string): Promise<AppWithSource[]> {
+    const rows = await this.db
+      .select()
+      .from(apps)
+      .leftJoin(gitSources, eq(gitSources.appId, apps.id))
+      .where(eq(apps.orgId, orgId));
+
+    return rows.map(({ apps: appRow, git_sources: sourceRow }) => ({
+      ...toDomain(appRow),
+      gitSource: sourceRow
+        ? {
+            id: sourceRow.id,
+            appId: sourceRow.appId,
+            connectionId: sourceRow.connectionId,
+            provider: sourceRow.provider as GitProvider,
+            repoSlug: sourceRow.repoSlug,
+            cloneUrl: sourceRow.cloneUrl,
+            branch: sourceRow.branch,
+            shaDeployed: sourceRow.shaDeployed,
+            activeColor: sourceRow.activeColor as ActiveColor | null,
+            warmColor: sourceRow.warmColor as ActiveColor | null,
+            warmExpiresAt: sourceRow.warmExpiresAt
+              ? sourceRow.warmExpiresAt.toISOString()
+              : null,
+            lastPushAt: sourceRow.lastPushAt
+              ? sourceRow.lastPushAt.toISOString()
+              : null,
+            createdAt: sourceRow.createdAt.toISOString(),
+            updatedAt: sourceRow.updatedAt.toISOString(),
+          }
+        : null,
+    }));
   }
 
   async updateStatus(orgId: string, id: string, status: string): Promise<void> {

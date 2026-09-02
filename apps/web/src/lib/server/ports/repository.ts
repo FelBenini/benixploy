@@ -19,6 +19,7 @@ import type {
   GitConnectionWithSecrets,
   UpsertGitConnectionInput,
 } from "../domain/git-connection";
+import type { GitSource, UpsertGitSourceInput } from "../domain/git-source";
 
 export interface DbExecutor {
   insert(table: unknown): {
@@ -84,10 +85,15 @@ export interface ServerRepository {
   ): Promise<Server>;
 }
 
+export interface AppWithSource extends App {
+  gitSource: GitSource | null;
+}
+
 export interface AppRepository {
   create(orgId: string, data: App): Promise<App>;
   get(orgId: string, id: string): Promise<App | null>;
   list(orgId: string): Promise<App[]>;
+  listWithSources(orgId: string): Promise<AppWithSource[]>;
   updateStatus(orgId: string, id: string, status: string): Promise<void>;
   delete(orgId: string, id: string): Promise<void>;
 }
@@ -205,6 +211,19 @@ export interface GitConnectionRepository {
   clearExternalId(orgId: string, id: string): Promise<void>;
 }
 
+export interface GitSourceRepository {
+  findByApp(appId: string): Promise<GitSource | null>;
+  findByCloneMatch(
+    connectionId: string,
+    repoSlug: string,
+    branch: string,
+  ): Promise<GitSource | null>;
+  upsert(input: UpsertGitSourceInput): Promise<GitSource>;
+  setActiveColor(appId: string, color: string): Promise<void>;
+  setWarmColor(appId: string, color: string, expiresAt: string): Promise<void>;
+  clearWarmColor(appId: string): Promise<void>;
+}
+
 export interface Repository {
   servers: ServerRepository;
   apps: AppRepository;
@@ -218,4 +237,5 @@ export interface Repository {
   registeredNodes: RegisteredNodeRepository;
   registrationTokens: RegistrationTokenRepository;
   gitConnections: GitConnectionRepository;
+  gitSources: GitSourceRepository;
 }

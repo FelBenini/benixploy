@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { AppKindSchema } from "./app-spec";
+import { ActiveColorSchema } from "./git-source";
 
 export const AppStatusSchema = z.enum([
   "pending",
@@ -19,6 +20,9 @@ export const AppSchema = z.object({
   ),
   serverId: z.string().min(1).describe("Server this app is deployed on"),
   status: AppStatusSchema.default("pending"),
+  activeColor: ActiveColorSchema.nullish().describe(
+    "Active blue/green color for this app",
+  ),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });

@@ -8,6 +8,7 @@ import type {
   ServerRepository,
   ServerWithOrg,
   AppRepository,
+  AppWithSource,
   DeploymentRepository,
   UserRepository,
   SessionRepository,
@@ -35,6 +36,8 @@ import type {
   UpsertGitConnectionInput,
 } from "../domain/git-connection";
 import type { GitConnectionRepository } from "../ports/repository";
+import type { GitSourceRepository } from "../ports/repository";
+import type { GitSource, UpsertGitSourceInput } from "../domain/git-source";
 
 export const TEST_ORG_ID = "org-test";
 export const TEST_USER_ID = "user-test";
@@ -203,6 +206,13 @@ export class InMemoryAppRepo implements AppRepository {
 
   async list(orgId: string): Promise<App[]> {
     return Array.from(this.orgMap(orgId).values());
+  }
+
+  async listWithSources(orgId: string): Promise<AppWithSource[]> {
+    return Array.from(this.orgMap(orgId).values()).map((app) => ({
+      ...app,
+      gitSource: null,
+    }));
   }
 
   async updateStatus(orgId: string, id: string, status: string): Promise<void> {
@@ -622,6 +632,87 @@ export class InMemoryGitConnectionRepo implements GitConnectionRepository {
   }
 }
 
+export class InMemoryGitSourceRepo implements GitSourceRepository {
+  private data = new Map<string, GitSource>();
+
+  async findByApp(appId: string): Promise<GitSource | null> {
+    for (const source of this.data.values()) {
+      if (source.appId === appId) return source;
+    }
+    return null;
+  }
+
+  async findByCloneMatch(
+    connectionId: string,
+    repoSlug: string,
+    branch: string,
+  ): Promise<GitSource | null> {
+    for (const source of this.data.values()) {
+      if (
+        source.connectionId === connectionId &&
+        source.repoSlug === repoSlug &&
+        source.branch === branch
+      ) {
+        return source;
+      }
+    }
+    return null;
+  }
+
+  async upsert(input: UpsertGitSourceInput): Promise<GitSource> {
+    const now = new Date().toISOString();
+    const existing = await this.findByApp(input.appId);
+    const source: GitSource = {
+      id: existing?.id ?? crypto.randomUUID(),
+      appId: input.appId,
+      connectionId: input.connectionId,
+      provider: input.provider,
+      repoSlug: input.repoSlug,
+      cloneUrl: input.cloneUrl,
+      branch: input.branch,
+      shaDeployed: existing?.shaDeployed ?? null,
+      activeColor: existing?.activeColor ?? null,
+      warmColor: existing?.warmColor ?? null,
+      warmExpiresAt: existing?.warmExpiresAt ?? null,
+      lastPushAt: existing?.lastPushAt ?? null,
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now,
+    };
+    this.data.set(source.id, source);
+    return source;
+  }
+
+  async setActiveColor(appId: string, color: string): Promise<void> {
+    const source = await this.findByApp(appId);
+    if (source) {
+      source.activeColor = color as GitSource["activeColor"];
+      source.updatedAt = new Date().toISOString();
+    }
+  }
+
+  async setWarmColor(
+    appId: string,
+    color: string,
+    expiresAt: string,
+  ): Promise<void> {
+    const source = await this.findByApp(appId);
+    if (source) {
+      source.warmColor = color as GitSource["warmColor"];
+      source.warmExpiresAt = expiresAt;
+      source.updatedAt = new Date().toISOString();
+    }
+  }
+
+  async clearWarmColor(appId: string): Promise<void> {
+    const source = await this.findByApp(appId);
+    if (source) {
+      source.warmColor = null;
+      source.warmExpiresAt = null;
+      source.updatedAt = new Date().toISOString();
+    }
+  }
+}
+
 export class InMemoryRepository implements Repository {
   apps: InMemoryAppRepo;
   servers: InMemoryServerRepo;
@@ -635,6 +726,7 @@ export class InMemoryRepository implements Repository {
   registeredNodes: InMemoryRegisteredNodeRepo;
   registrationTokens: InMemoryRegistrationTokenRepo;
   gitConnections: InMemoryGitConnectionRepo;
+  gitSources: InMemoryGitSourceRepo;
 
   constructor() {
     this.apps = new InMemoryAppRepo();
@@ -649,6 +741,7 @@ export class InMemoryRepository implements Repository {
     this.registeredNodes = new InMemoryRegisteredNodeRepo();
     this.registrationTokens = new InMemoryRegistrationTokenRepo();
     this.gitConnections = new InMemoryGitConnectionRepo();
+    this.gitSources = new InMemoryGitSourceRepo();
   }
 }
 
