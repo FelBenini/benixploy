@@ -9,18 +9,24 @@
 # client input and passed to sh -c / eval.
 #
 # Deploy artifacts live under /opt/benisploy/apps/<app-id>/.
+# The `build` action clones a git URL into <app-id>/build-context/, checks out
+# an optional commit, and runs `docker compose build` — see do_build below.
 #
 # SECURITY: every filesystem path segment derived from client input MUST be
-# validated against the APP_ID pattern before use.
+# validated against the APP_ID pattern before use. Git credentials arrive via
+# the stdin auth line (never argv — argv is visible in `ps`), and are consumed
+# only through GIT_ASKPASS / git config environment variables. No client
+# string is ever passed through sh -c / eval.
 
 set -euf
 
 # ---------------------------------------------------------------------------
 # constants
 # ---------------------------------------------------------------------------
-VERSION="1.0.0"
+VERSION="1.1.0"
 APPS_DIR="/opt/benisploy/apps"
 APP_ID_PATTERN='^[a-zA-Z0-9_-]+$'
+GIT_URL_PATTERN='^https?://'
 
 # ---------------------------------------------------------------------------
 # helpers
@@ -61,6 +67,41 @@ json_escape() {
     sed 's/\\/\\\\/g; s/"/\\"/g'
 }
 
+validate_git_url() {
+    url="$1"
+    case "$url" in
+        http://* | https://*) ;;
+        *) die "invalid git url: '$url' — must be http(s)://" 2 ;;
+    esac
+    if printf '%s' "$url" | grep -Eq '[[:space:][:cntrl:]]'; then
+        die "invalid git url: must not contain whitespace" 2
+    fi
+    # Credentials never travel in the URL — auth is passed via the stdin
+    # auth line. Reject any client attempt to smuggle userinfo in.
+    if printf '%s' "$url" | grep -Eq '://[^/@]+@'; then
+        die "invalid git url: embedded credentials are not allowed" 2
+    fi
+}
+
+validate_commit() {
+    commit="$1"
+    if ! printf '%s' "$commit" | grep -Eq '^[A-Za-z0-9._/-]+$'; then
+        die "invalid commit ref: '$commit'" 2
+    fi
+}
+
+# Replace any known secret with [REDACTED] before relaying output to the
+# control plane. Secrets are provider-issued alphanumeric tokens, so awk
+# gsub is regex-safe for them.
+redact_output() {
+    value="$1"
+    for secret in "$GIT_PASSWORD" "$GIT_HEADER" "$GIT_USER"; do
+        [ -n "$secret" ] || continue
+        value="$(printf '%s' "$value" | awk -v pat="$secret" '{ gsub(pat, "[REDACTED]"); print }')"
+    done
+    printf '%s' "$value"
+}
+
 log_count() {
     n="${1:-100}"
     case "$n" in
@@ -85,6 +126,105 @@ do_deploy() {
     docker compose -f "$compose" up -d --remove-orphans >&2
 
     printf '{"action":"deploy","app_id":"%s","status":"ok"}\n' "$app_id"
+}
+
+do_build() {
+    app_id="$1"
+    git_url="$2"
+    commit="${3:-}"
+    auth_line="${4:-}"
+
+    validate_app_id "$app_id"
+    validate_git_url "$git_url"
+    if [ -n "$commit" ]; then
+        validate_commit "$commit"
+    fi
+    check_app_exists "$app_id"
+
+    GIT_USER=""
+    GIT_PASSWORD=""
+    GIT_HEADER=""
+    if [ -n "$auth_line" ]; then
+        set -- $auth_line
+        auth_type="${1:-}"
+        if [ "$#" -gt 0 ]; then shift; fi
+        case "$auth_type" in
+            basic)
+                GIT_USER="${1:-}"
+                GIT_PASSWORD="${2:-}"
+                ;;
+            header)
+                GIT_HEADER="$*"
+                ;;
+            *)
+                die "invalid auth type: '$auth_type' — valid: basic|header" 2
+                ;;
+        esac
+    fi
+
+    ctx="$(app_dir "$app_id")/build-context"
+
+    printf '{"action":"build","app_id":"%s","status":"cloning"}\n' "$app_id"
+
+    rm -rf "$ctx"
+
+    # Credentials are consumed via environment/askpass, never argv.
+    if [ -n "$GIT_HEADER" ]; then
+        export GIT_CONFIG_COUNT=1 \
+            GIT_CONFIG_KEY_0=http.extraheader \
+            GIT_CONFIG_VALUE_0="$GIT_HEADER"
+    elif [ -n "$GIT_PASSWORD" ]; then
+        askpass="$(mktemp)"
+        chmod 700 "$askpass"
+        # shellcheck disable=SC2064
+        trap '[ -n "${askpass:-}" ] && rm -f "$askpass"' EXIT HUP INT TERM
+        cat >"$askpass" <<'ASKPASS'
+#!/bin/sh
+case "$1" in
+    *Username*) printf '%s\n' "$BENISPLOY_GIT_USER" ;;
+    *Password*) printf '%s\n' "$BENISPLOY_GIT_PASSWORD" ;;
+    *) exit 1 ;;
+esac
+ASKPASS
+        export GIT_ASKPASS="$askpass"
+        export BENISPLOY_GIT_USER="$GIT_USER"
+        export BENISPLOY_GIT_PASSWORD="$GIT_PASSWORD"
+    fi
+    export GIT_TERMINAL_PROMPT=0
+
+    clone_error=""
+    if ! clone_output="$(git clone "$git_url" "$ctx" 2>&1)"; then
+        clone_error="$clone_output"
+    fi
+    if [ -n "$clone_error" ]; then
+        die "build clone failed: $(redact_output "$clone_error")" 6
+    fi
+
+    if [ -n "$commit" ]; then
+        printf '{"action":"build","app_id":"%s","status":"checkout"}\n' "$app_id"
+        checkout_error=""
+        if ! checkout_output="$(git -C "$ctx" -c advice.detachedHead=false checkout --force -- "$commit" 2>&1)"; then
+            checkout_error="$checkout_output"
+        fi
+        if [ -n "$checkout_error" ]; then
+            die "build checkout failed: $(redact_output "$checkout_error")" 7
+        fi
+    fi
+
+    printf '{"action":"build","app_id":"%s","status":"building"}\n' "$app_id"
+
+    compose="$(compose_file "$app_id")"
+    build_error=""
+    if ! build_output="$(docker compose -f "$compose" build 2>&1)"; then
+        build_error="$build_output"
+    fi
+    if [ -n "$build_error" ]; then
+        printf '%s\n' "$(redact_output "$build_error")" >&2
+        die "build failed: docker compose build exited non-zero" 8
+    fi
+    printf '%s\n' "$(redact_output "$build_output")" >&2
+
+    printf '{"action":"build","app_id":"%s","status":"ok"}\n' "$app_id"
 }
 
 do_restart() {
@@ -188,7 +328,7 @@ fi
 set -- $line
 
 action="${1:-}"
-shift 2>/dev/null || true
+if [ "$#" -gt 0 ]; then shift; fi
 
 case "$action" in
     version)
@@ -202,10 +342,10 @@ case "$action" in
 esac
 
 app_id="${1:-}"
-shift 2>/dev/null || true
+if [ "$#" -gt 0 ]; then shift; fi
 
 if [ -z "$app_id" ] && [ "$action" != "version" ] && [ "$action" != "system_info" ]; then
-    die "usage: <action> <app-id> [args...] — actions: deploy|restart|stop|delete|status|logs|system_info|version" 2
+    die "usage: <action> <app-id> [args...] — actions: deploy|restart|stop|delete|status|logs|build|system_info|version" 2
 fi
 
 validate_app_id "$app_id"
@@ -213,6 +353,13 @@ validate_app_id "$app_id"
 case "$action" in
     deploy)
         do_deploy "$app_id"
+        ;;
+    build)
+        # Auth (if any) arrives on a second stdin line, separate from the
+        # action line — never via argv, never in the URL.
+        auth_line=""
+        read -r auth_line <&0 || auth_line=""
+        do_build "$app_id" "${1:-}" "${2:-}" "$auth_line"
         ;;
     restart)
         do_restart "$app_id"
@@ -237,6 +384,6 @@ case "$action" in
         do_exec "$app_id" "$@"
         ;;
     *)
-        die "unknown action: '$action' — valid: deploy|restart|stop|delete|status|logs|exec|system_info|version" 2
+        die "unknown action: '$action' — valid: deploy|restart|stop|delete|status|logs|exec|build|system_info|version" 2
         ;;
 esac

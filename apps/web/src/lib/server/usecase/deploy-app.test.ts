@@ -100,4 +100,77 @@ describe("deployApp", () => {
     expect(dep.id).toBe(result.deployment.id);
     expect(dep.status).toBe("healthy");
   });
+
+  describe("git-sourced apps", () => {
+    const GIT_URL = "https://github.com/octocat/hello.git";
+
+    function gitSpec(): ReturnType<typeof validAppSpec> {
+      return validAppSpec({ image: undefined, buildContext: GIT_URL });
+    }
+
+    it("calls build before deploy for git-sourced apps", async () => {
+      const repo = new InMemoryRepository();
+      const nodeClient = new FakeNodeCommandClient();
+      const deployApp = createDeployApp(repo, nodeClient);
+
+      const result = await deployApp(TEST_ORG_ID, gitSpec(), "server-git-1");
+
+      expect(nodeClient.built).toHaveLength(1);
+      expect(nodeClient.built[0]).toMatchObject({
+        serverId: "server-git-1",
+        appId: result.app.id,
+        gitUrl: GIT_URL,
+        commit: undefined,
+        cloneAuth: undefined,
+      });
+      expect(nodeClient.deployed).toHaveLength(1);
+      expect(nodeClient.built[0].appId).toBe(nodeClient.deployed[0].appId);
+    });
+
+    it("passes resolved clone auth to build", async () => {
+      const repo = new InMemoryRepository();
+      const nodeClient = new FakeNodeCommandClient();
+      const cloneAuth = {
+        url: "https://x-access-token:ghs_secret@github.com/octocat/hello.git",
+      };
+      const deployApp = createDeployApp(repo, nodeClient, {
+        resolveCloneAuth: async () => cloneAuth,
+      });
+
+      await deployApp(TEST_ORG_ID, gitSpec(), "server-git-2");
+
+      expect(nodeClient.built[0].cloneAuth).toEqual(cloneAuth);
+    });
+
+    it("does not call build for image-based app specs", async () => {
+      const repo = new InMemoryRepository();
+      const nodeClient = new FakeNodeCommandClient();
+      const deployApp = createDeployApp(repo, nodeClient);
+
+      await deployApp(TEST_ORG_ID, validAppSpec(), "server-git-3");
+
+      expect(nodeClient.built).toHaveLength(0);
+      expect(nodeClient.deployed).toHaveLength(1);
+    });
+
+    it("marks deployment as failed on build error", async () => {
+      const repo = new InMemoryRepository();
+      const nodeClient = new FakeNodeCommandClient();
+      nodeClient.buildError = new Error("git clone failed");
+      const deployApp = createDeployApp(repo, nodeClient);
+
+      await expect(
+        deployApp(TEST_ORG_ID, gitSpec(), "server-git-4"),
+      ).rejects.toThrow("git clone failed");
+
+      const apps = await repo.apps.list(TEST_ORG_ID);
+      expect(apps[0].status).toBe("degraded");
+      const deployments = await repo.deployments.listForApp(
+        TEST_ORG_ID,
+        apps[0].id,
+      );
+      expect(deployments[0].status).toBe("failed");
+      expect(nodeClient.deployed).toHaveLength(0);
+    });
+  });
 });

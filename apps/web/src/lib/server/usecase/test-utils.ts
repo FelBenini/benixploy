@@ -26,6 +26,7 @@ import type {
   LogEntry as NodeCommandLogEntry,
   ContainerState,
 } from "../ports/node-command-client";
+import type { CloneAuth } from "../ports/git-provider-client";
 import type { NodeEvent, NodeStats } from "../domain/node-event";
 import type { NodeEventRepository } from "../ports/repository";
 import type { RegisteredNode } from "../domain/registered-node";
@@ -749,8 +750,17 @@ export class FakeNodeCommandClient implements NodeCommandClientType {
   deployLogs: NodeCommandLogEntry[] = [];
   deployed: Array<{ serverId: string; appId: string; composeYaml: string }> =
     [];
+  built: Array<{
+    serverId: string;
+    appId: string;
+    composeYaml: string;
+    gitUrl: string;
+    commit?: string;
+    cloneAuth?: CloneAuth;
+  }> = [];
   containerStates: ContainerState[] = [];
   deployError?: Error;
+  buildError?: Error;
 
   async *deploy(
     serverId: string,
@@ -762,6 +772,25 @@ export class FakeNodeCommandClient implements NodeCommandClientType {
     for (const entry of this.deployLogs) {
       yield entry;
     }
+  }
+
+  async build(
+    serverId: string,
+    appId: string,
+    composeYaml: string,
+    gitUrl: string,
+    commit?: string,
+    cloneAuth?: CloneAuth,
+  ): Promise<void> {
+    if (this.buildError) throw this.buildError;
+    this.built.push({
+      serverId,
+      appId,
+      composeYaml,
+      gitUrl,
+      commit,
+      cloneAuth,
+    });
   }
 
   async restart(_serverId: string, _appId: string): Promise<void> {}
