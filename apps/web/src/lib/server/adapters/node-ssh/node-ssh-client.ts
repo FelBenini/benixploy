@@ -5,11 +5,62 @@ import type {
   LogEntry,
   ContainerState,
 } from "../../ports/node-command-client";
+import type { CloneAuth } from "../../ports/git-provider-client";
 import type { Server } from "../../domain/server";
 import { computeHostFingerprint } from "./ssh-provision-client";
 
 const APP_ID_PATTERN = /^[a-zA-Z0-9_-]+$/;
 const APPS_BASE_PATH = "/opt/benisploy/apps";
+const GIT_URL_PATTERN = /^https?:\/\/[^\s]+$/;
+const COMMIT_PATTERN = /^[a-zA-Z0-9._/-]+$/;
+
+export interface CloneAuthPayload {
+  url?: string;
+  authLine?: string;
+}
+
+/**
+ * Convert a provider-supplied CloneAuth into the payload the forced-command
+ * script consumes: a credential-free clone URL plus an auth line
+ * (`basic <user> <pass>` | `header <value>`) that travels over SSH stdin.
+ * The token must never appear in argv (visible in `ps`) or in the URL.
+ */
+export function cloneAuthToPayload(cloneAuth?: CloneAuth): CloneAuthPayload {
+  if (!cloneAuth) return {};
+
+  let parsed: URL;
+  try {
+    parsed = new URL(cloneAuth.url);
+  } catch {
+    throw new Error("Invalid clone auth URL");
+  }
+  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+    throw new Error(`Invalid clone auth URL protocol: ${parsed.protocol}`);
+  }
+
+  const username = decodeURIComponent(parsed.username);
+  const password = decodeURIComponent(parsed.password);
+  parsed.username = "";
+  parsed.password = "";
+  const url = parsed.toString();
+
+  if (cloneAuth.header) {
+    if (/[\r\n]/.test(cloneAuth.header)) {
+      throw new Error("Clone auth header must not contain line breaks");
+    }
+    return { url, authLine: `header ${cloneAuth.header}` };
+  }
+
+  if (!username && !password) {
+    return { url };
+  }
+
+  if (/\s/.test(username) || /\s/.test(password)) {
+    throw new Error("Clone credentials must not contain whitespace");
+  }
+
+  return { url, authLine: `basic ${username} ${password}` };
+}
 
 export class SshConnectionError extends Error {
   constructor(
@@ -53,6 +104,11 @@ interface PoolEntry {
 export interface SshNodeCommandClientConfig {
   hostVerifier?: (key: Buffer) => boolean;
   commandTimeoutMs?: number;
+  /**
+   * Timeout for the `build` action (docker builds can take minutes).
+   * @default 900000 (15 minutes)
+   */
+  buildTimeoutMs?: number;
   idleTimeoutMs?: number;
   /**
    * The command string passed to SSH exec.
@@ -198,15 +254,48 @@ export class SshNodeCommandClient implements NodeCommandClient {
     }
   }
 
+  private uploadComposeFile(
+    server: Server,
+    appId: string,
+    composeYaml: string,
+  ): Promise<void> {
+    return (async () => {
+      const remoteDir = `${APPS_BASE_PATH}/${appId}`;
+      const remotePath = `${remoteDir}/docker-compose.yml`;
+
+      const sftp = new SFTPClient();
+      try {
+        await sftp.connect({
+          host: server.address,
+          port: server.sshPort ?? 22,
+          username: server.sshUser ?? "root",
+          privateKey: server.sshPrivateKey,
+          readyTimeout: 15_000,
+          hostVerifier: this.buildHostVerifier(server),
+        } as Record<string, unknown>);
+        await (
+          sftp.mkdir as unknown as (
+            path: string,
+            recursive: boolean,
+          ) => Promise<string>
+        )(remoteDir, true);
+        await sftp.put(Buffer.from(composeYaml), remotePath);
+      } finally {
+        await sftp.end().catch(() => {});
+      }
+    })();
+  }
+
   private execAction(
     client: Client,
     appId: string,
     action: string,
-    extra?: string,
+    options: { extra?: string; stdinLines?: string[]; timeoutMs?: number } = {},
   ): Promise<{ stdout: string; stderr: string }> {
     return new Promise((resolve, reject) => {
       let settled = false;
-      const timeout = this.config.commandTimeoutMs ?? 60_000;
+      const timeout =
+        options.timeoutMs ?? this.config.commandTimeoutMs ?? 60_000;
       const timer = setTimeout(() => {
         if (settled) return;
         settled = true;
@@ -287,9 +376,15 @@ export class SshNodeCommandClient implements NodeCommandClient {
           );
         });
 
-        const payload = extra
-          ? `${action} ${appId} ${extra}\n`
-          : `${action} ${appId}\n`;
+        const lines = [
+          options.extra
+            ? `${action} ${appId} ${options.extra}`
+            : `${action} ${appId}`,
+        ];
+        if (options.stdinLines && options.stdinLines.length > 0) {
+          lines.push(...options.stdinLines);
+        }
+        const payload = `${lines.join("\n")}\n`;
         channel.write(payload);
         channel.end();
       });
@@ -335,29 +430,11 @@ export class SshNodeCommandClient implements NodeCommandClient {
   ): AsyncIterable<LogEntry> {
     this.validateAppId(appId);
     const server = await this.getServer(serverId);
-    const remoteDir = `${APPS_BASE_PATH}/${appId}`;
-    const remotePath = `${remoteDir}/docker-compose.yml`;
 
     const client = await this.createConnection(server);
 
     try {
-      const sftp = new SFTPClient();
-      await sftp.connect({
-        host: server.address,
-        port: server.sshPort ?? 22,
-        username: server.sshUser ?? "root",
-        privateKey: server.sshPrivateKey,
-        readyTimeout: 15_000,
-        hostVerifier: this.buildHostVerifier(server),
-      } as Record<string, unknown>);
-      await (
-        sftp.mkdir as unknown as (
-          path: string,
-          recursive: boolean,
-        ) => Promise<string>
-      )(remoteDir, true);
-      await sftp.put(Buffer.from(composeYaml), remotePath);
-      await sftp.end();
+      await this.uploadComposeFile(server, appId, composeYaml);
 
       yield {
         timestamp: new Date().toISOString(),
@@ -373,6 +450,42 @@ export class SshNodeCommandClient implements NodeCommandClient {
       for (const entry of this.parseLogs(stderr, "stderr")) {
         yield entry;
       }
+    } finally {
+      client.end();
+    }
+  }
+
+  async build(
+    serverId: string,
+    appId: string,
+    composeYaml: string,
+    gitUrl: string,
+    commit?: string,
+    cloneAuth?: CloneAuth,
+  ): Promise<void> {
+    this.validateAppId(appId);
+    if (!GIT_URL_PATTERN.test(gitUrl)) {
+      throw new Error(`Invalid git URL: "${gitUrl}"`);
+    }
+    if (commit !== undefined && !COMMIT_PATTERN.test(commit)) {
+      throw new Error(`Invalid commit ref: "${commit}"`);
+    }
+
+    const server = await this.getServer(serverId);
+    const client = await this.createConnection(server);
+
+    try {
+      await this.uploadComposeFile(server, appId, composeYaml);
+
+      const { url, authLine } = cloneAuthToPayload(cloneAuth);
+      const extra = `${url ?? gitUrl}${commit ? ` ${commit}` : ""}`;
+      const stdinLines = authLine ? [authLine] : [];
+
+      await this.execAction(client, appId, "build", {
+        extra,
+        stdinLines,
+        timeoutMs: this.config.buildTimeoutMs ?? 15 * 60 * 1000,
+      });
     } finally {
       client.end();
     }
@@ -399,12 +512,9 @@ export class SshNodeCommandClient implements NodeCommandClient {
   ): Promise<void> {
     this.validateAppId(appId);
     await this.withConnection(serverId, (client) =>
-      this.execAction(
-        client,
-        appId,
-        "delete",
-        volumes ? "--volumes" : undefined,
-      ).then(() => {}),
+      this.execAction(client, appId, "delete", {
+        extra: volumes ? "--volumes" : undefined,
+      }).then(() => {}),
     );
   }
 
@@ -423,12 +533,9 @@ export class SshNodeCommandClient implements NodeCommandClient {
   ): Promise<LogEntry[]> {
     this.validateAppId(appId);
     return this.withConnection(serverId, async (client) => {
-      const { stdout, stderr } = await this.execAction(
-        client,
-        appId,
-        "logs",
-        String(lines),
-      );
+      const { stdout, stderr } = await this.execAction(client, appId, "logs", {
+        extra: String(lines),
+      });
       return [
         ...this.parseLogs(stdout, "stdout"),
         ...this.parseLogs(stderr, "stderr"),

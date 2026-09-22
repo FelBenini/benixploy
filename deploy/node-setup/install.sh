@@ -13,11 +13,12 @@
 #
 # What it does:
 #   1. Installs Docker (if not present)
-#   2. Creates the benisploy system user
-#   3. Creates /opt/benisploy/{apps,bin,traefik/dynamic} directories
-#   4. Installs the forced-command exec-command.sh script
-#   5. Configures SSH authorized_keys (two entries: exec + sftp)
-#   6. Installs and starts the node-monitor systemd service
+#   2. Installs git (required for git-sourced builds)
+#   3. Creates the benisploy system user
+#   4. Creates /opt/benisploy/{apps,bin,traefik/dynamic} directories
+#   5. Installs the forced-command exec-command.sh script
+#   6. Configures SSH authorized_keys (two entries: exec + sftp)
+#   7. Installs and starts the node-monitor systemd service
 #
 # The script is idempotent — safe to re-run on an already-provisioned node.
 
@@ -143,6 +144,48 @@ install_docker() {
   # Enable docker service (Debian-based path)
   systemctl enable --now docker 2>/dev/null || true
   log "Docker installed successfully."
+}
+
+# ---------------------------------------------------------------------------
+# step 1b — install git (required for git-sourced builds)
+# ---------------------------------------------------------------------------
+install_git() {
+  if command -v git >/dev/null 2>&1; then
+    log "git already installed ($(git --version 2>/dev/null || echo 'unknown'))."
+    return 0
+  fi
+
+  log "Installing git..."
+
+  if [ -f /etc/os-release ]; then
+    . /etc/os-release
+  else
+    die "Cannot detect OS — /etc/os-release not found."
+  fi
+
+  case "$ID" in
+  debian | ubuntu | linuxmint | pop | elementary | zorin)
+    apt-get update -qq
+    apt-get install -y -qq git
+    ;;
+  fedora | rhel | centos | rocky | almalinux | ol | amzn)
+    dnf -y install git
+    ;;
+  arch | manjaro | endeavouros)
+    pacman -Sy --noconfirm git
+    ;;
+  alpine)
+    apk add --no-cache git
+    ;;
+  opensuse* | sles)
+    zypper --non-interactive install git
+    ;;
+  *)
+    die "Unsupported distro: $ID. Install git manually and re-run this script."
+    ;;
+  esac
+
+  log "git installed."
 }
 
 # ---------------------------------------------------------------------------
@@ -417,6 +460,9 @@ main() {
 
   install_docker
   step_done "docker"
+
+  install_git
+  step_done "git"
 
   setup_user_and_dirs
   step_done "user"

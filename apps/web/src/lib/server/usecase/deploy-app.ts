@@ -1,18 +1,31 @@
 import type { Repository } from "../ports/repository";
 import type { NodeCommandClient } from "../ports/node-command-client";
+import type { CloneAuth } from "../ports/git-provider-client";
 import type { App } from "../domain/app";
 import type { AppSpec } from "../domain/app-spec";
 import type { Deployment } from "../domain/deployment";
-import { generateComposeYaml } from "../adapters/compose-gen";
+import { generateComposeYaml, isHttpUrl } from "../adapters/compose-gen";
 
 export interface DeployAppOutput {
   app: App;
   deployment: Deployment;
 }
 
+export interface DeployAppDeps {
+  /**
+   * Resolve clone credentials for a git-sourced app spec. Returns undefined
+   * for public repos or when no matching provider connection exists.
+   */
+  resolveCloneAuth?: (
+    orgId: string,
+    appSpec: AppSpec,
+  ) => Promise<CloneAuth | undefined>;
+}
+
 export function createDeployApp(
   repo: Repository,
   nodeClient: NodeCommandClient,
+  deps: DeployAppDeps = {},
 ) {
   return async function deployApp(
     orgId: string,
@@ -53,9 +66,30 @@ export function createDeployApp(
       "executing",
     );
 
-    const composeYaml = generateComposeYaml(appSpec);
+    const composeYaml = generateComposeYaml(appSpec, {
+      appId: createdApp.id,
+      version,
+    });
 
     try {
+      const buildContext = appSpec.buildContext;
+      if (buildContext && isHttpUrl(buildContext)) {
+        const cloneAuth = deps.resolveCloneAuth
+          ? await deps.resolveCloneAuth(orgId, appSpec)
+          : undefined;
+        // commit is omitted here — the node checks out the default branch
+        // HEAD. Push-specific SHAs are wired in by the push-deploy
+        // orchestrator (issue #64).
+        await nodeClient.build(
+          serverId,
+          createdApp.id,
+          composeYaml,
+          buildContext,
+          undefined,
+          cloneAuth,
+        );
+      }
+
       for await (const _entry of nodeClient.deploy(
         serverId,
         createdApp.id,

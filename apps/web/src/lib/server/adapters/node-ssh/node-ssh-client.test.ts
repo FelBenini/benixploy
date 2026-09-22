@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, afterEach, beforeAll } from "vitest";
 import { generateKeyPairSync } from "crypto";
-import { SshNodeCommandClient, SshConnectionError } from "./node-ssh-client";
+import {
+  SshNodeCommandClient,
+  SshConnectionError,
+  cloneAuthToPayload,
+} from "./node-ssh-client";
 import type { Server } from "../../domain/server";
 
 let testPrivateKey: string;
@@ -171,6 +175,88 @@ describe("SshNodeCommandClient", () => {
         expect(e).toBeInstanceOf(SshConnectionError);
       }
       expect(threw).toBe(true);
+    });
+  });
+
+  describe("build validation", () => {
+    it("rejects non-http git URLs before connecting", async () => {
+      client = new SshNodeCommandClient(vi.fn());
+      await expect(
+        client.build(
+          "srv-1",
+          "myapp",
+          "yaml: content",
+          "git@github.com:octocat/hello.git",
+        ),
+      ).rejects.toThrow("Invalid git URL");
+    });
+
+    it("rejects invalid commit refs before connecting", async () => {
+      client = new SshNodeCommandClient(vi.fn());
+      await expect(
+        client.build(
+          "srv-1",
+          "myapp",
+          "yaml: content",
+          "https://github.com/octocat/hello.git",
+          "bad ref",
+        ),
+      ).rejects.toThrow("Invalid commit ref");
+    });
+
+    it("throws SshConnectionError when server not found", async () => {
+      client = new SshNodeCommandClient(vi.fn().mockResolvedValue(null));
+      await expect(
+        client.build(
+          "srv-1",
+          "myapp",
+          "yaml: content",
+          "https://github.com/octocat/hello.git",
+        ),
+      ).rejects.toThrow(SshConnectionError);
+    });
+  });
+
+  describe("cloneAuthToPayload", () => {
+    it("returns empty payload when no auth is provided", () => {
+      expect(cloneAuthToPayload(undefined)).toEqual({});
+    });
+
+    it("strips userinfo from clone URLs into a basic auth line", () => {
+      const payload = cloneAuthToPayload({
+        url: "https://x-access-token:ghs_secret@github.com/octocat/hello.git",
+      });
+
+      expect(payload.url).not.toContain("ghs_secret");
+      expect(payload.url).not.toContain("x-access-token");
+      expect(payload.url).toBe("https://github.com/octocat/hello.git");
+      expect(payload.authLine).toBe("basic x-access-token ghs_secret");
+    });
+
+    it("passes header auth through as a header line", () => {
+      const payload = cloneAuthToPayload({
+        url: "https://gitea.example.com/octocat/hello.git",
+        header: "Authorization: token gitea_secret",
+      });
+
+      expect(payload.url).toBe("https://gitea.example.com/octocat/hello.git");
+      expect(payload.authLine).toBe("header Authorization: token gitea_secret");
+    });
+
+    it("returns a clean URL when no credentials are embedded", () => {
+      expect(
+        cloneAuthToPayload({
+          url: "https://github.com/octocat/hello.git",
+        }),
+      ).toEqual({ url: "https://github.com/octocat/hello.git" });
+    });
+
+    it("rejects credentials containing whitespace", () => {
+      expect(() =>
+        cloneAuthToPayload({
+          url: "https://user:bad pass@github.com/octocat/hello.git",
+        }),
+      ).toThrow("whitespace");
     });
   });
 });

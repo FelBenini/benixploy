@@ -140,6 +140,54 @@ services:
     expect(yaml).not.toContain("image:");
   });
 
+  it("emits ./build-context for git URL build contexts", () => {
+    const yaml = generateComposeYaml(
+      validSpec({
+        name: "git-test",
+        buildContext: "https://github.com/octocat/hello.git",
+        image: undefined,
+      }) as Parameters<typeof generateComposeYaml>[0],
+    );
+
+    const parsed = load(yaml) as Record<string, unknown>;
+    const svc = (parsed.services as Record<string, unknown>)[
+      "git-test"
+    ] as Record<string, unknown>;
+    expect(svc.build).toEqual({ context: "./build-context" });
+    expect(svc.image).toBeUndefined();
+    expect(yaml).not.toContain("https://github.com");
+  });
+
+  it("tags the image when appId and version are provided", () => {
+    const yaml = generateComposeYaml(
+      validSpec({
+        name: "git-test",
+        buildContext: "https://github.com/octocat/hello.git",
+        image: undefined,
+      }) as Parameters<typeof generateComposeYaml>[0],
+      { appId: "abc-123", version: 1 },
+    );
+
+    const parsed = load(yaml) as Record<string, unknown>;
+    const svc = (parsed.services as Record<string, unknown>)[
+      "git-test"
+    ] as Record<string, unknown>;
+    expect(svc.build).toEqual({ context: "./build-context" });
+    expect(svc.image).toBe("benisploy/abc-123:v1");
+  });
+
+  it("treats non-http build context strings as local paths", () => {
+    const yaml = generateComposeYaml(
+      validSpec({
+        name: "path-test",
+        buildContext: "file:///tmp/build",
+        image: undefined,
+      }) as Parameters<typeof generateComposeYaml>[0],
+    );
+
+    expect(yaml).toContain("build: file:///tmp/build");
+  });
+
   it("sanitizes container names", () => {
     const yaml = generateComposeYaml(
       validSpec({

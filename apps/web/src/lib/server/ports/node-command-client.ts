@@ -1,3 +1,5 @@
+import type { CloneAuth } from "./git-provider-client";
+
 export interface LogEntry {
   timestamp: string;
   stream: "stdout" | "stderr";
@@ -23,6 +25,21 @@ export interface NodeCommandClient {
     appId: string,
     composeYaml: string,
   ): AsyncIterable<LogEntry>;
+  /**
+   * Clone a git repo into the app's build-context, checkout `commit`
+   * (default: HEAD of the default branch), and run `docker compose build`.
+   * The compose file is uploaded first so the build action can resolve the
+   * service definition. Clone credentials travel via the SSH stdin payload,
+   * never argv.
+   */
+  build(
+    serverId: string,
+    appId: string,
+    composeYaml: string,
+    gitUrl: string,
+    commit?: string,
+    cloneAuth?: CloneAuth,
+  ): Promise<void>;
   restart(serverId: string, appId: string): Promise<void>;
   stop(serverId: string, appId: string): Promise<void>;
   remove(serverId: string, appId: string, volumes: boolean): Promise<void>;

@@ -3,6 +3,25 @@ import type { AppSpec } from "$lib/server/domain/app-spec";
 
 export interface ComposeGenOptions {
   baseDomain?: string;
+  /**
+   * App id — used to name images built from git-sourced build contexts.
+   */
+  appId?: string;
+  /**
+   * Deployment version — combined with `appId` into an image tag
+   * (`benisploy/<appId>:v<version>`) so `docker compose build` tags the
+   * built image deterministically.
+   */
+  version?: number;
+}
+
+export function isHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 function sanitize(name: string): string {
@@ -61,7 +80,18 @@ export function generateComposeYaml(
   if (appSpec.image) {
     svc.image = appSpec.image;
   } else if (appSpec.buildContext) {
-    svc.build = appSpec.buildContext;
+    if (isHttpUrl(appSpec.buildContext)) {
+      // The node clones the repo into the app's build-context directory
+      // (build action), so the compose file points at the local context.
+      // With appId+version, emit image tag so `docker compose build`
+      // produces benisploy/<appId>:v<version> deterministically.
+      svc.build = { context: "./build-context" };
+      if (options?.appId && options.version) {
+        svc.image = `benisploy/${sanitize(options.appId)}:v${options.version}`;
+      }
+    } else {
+      svc.build = appSpec.buildContext;
+    }
   }
 
   if (appSpec.envVars && Object.keys(appSpec.envVars).length > 0) {
