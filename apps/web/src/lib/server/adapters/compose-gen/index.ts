@@ -69,12 +69,14 @@ function deepMerge(
   }
 }
 
-export function generateComposeYaml(
+function buildService(
   appSpec: AppSpec,
-  options?: ComposeGenOptions,
-): string {
+  options: ComposeGenOptions | undefined,
+  serviceName: string,
+  includeTraefikLabels: boolean,
+): Record<string, unknown> {
   const svc: Record<string, unknown> = {
-    container_name: sanitize(appSpec.name),
+    container_name: serviceName,
   };
 
   if (appSpec.image) {
@@ -129,7 +131,7 @@ export function generateComposeYaml(
     };
   }
 
-  if (options?.baseDomain) {
+  if (includeTraefikLabels && options?.baseDomain) {
     const routerName = sanitize(appSpec.name);
     const hostname = `${routerName}.${options.baseDomain}`;
     const labels: string[] = [
@@ -148,11 +150,63 @@ export function generateComposeYaml(
     svc.labels = labels;
   }
 
-  const compose: Record<string, unknown> = {
-    services: {
-      [sanitize(appSpec.name)]: svc,
-    },
-  };
+  return svc;
+}
+
+/**
+ * Stateless output has two services (`<name>-blue` / `<name>-green`).
+ * Compose overrides written against the base service name `services.<name>`
+ * are remapped onto both color services so existing override semantics
+ * still apply to the blue/green pair.
+ */
+function remapStatelessServiceName(
+  overrideObj: Record<string, unknown>,
+  baseName: string,
+): void {
+  const services = overrideObj.services;
+  if (
+    services === null ||
+    typeof services !== "object" ||
+    Array.isArray(services)
+  ) {
+    return;
+  }
+  const serviceMap = services as Record<string, unknown>;
+  if (serviceMap[baseName] === undefined) return;
+  const fragment = serviceMap[baseName];
+  delete serviceMap[baseName];
+  serviceMap[`${baseName}-blue`] = structuredClone(fragment);
+  serviceMap[`${baseName}-green`] = structuredClone(fragment);
+}
+
+export function generateComposeYaml(
+  appSpec: AppSpec,
+  options?: ComposeGenOptions,
+): string {
+  const kind = appSpec.kind ?? "stateless";
+  const baseName = sanitize(appSpec.name);
+
+  const services: Record<string, unknown> = {};
+  if (kind === "stateless") {
+    // Blue/green pair. Traefik routing for stateless apps is owned by the
+    // dynamic-config writer (issue #63) — no labels emitted here on purpose.
+    services[`${baseName}-blue`] = buildService(
+      appSpec,
+      options,
+      `${baseName}-blue`,
+      false,
+    );
+    services[`${baseName}-green`] = buildService(
+      appSpec,
+      options,
+      `${baseName}-green`,
+      false,
+    );
+  } else {
+    services[baseName] = buildService(appSpec, options, baseName, true);
+  }
+
+  const compose: Record<string, unknown> = { services };
 
   // Declare named volumes (non-path sources) under top-level volumes
   if (appSpec.volumeMounts && appSpec.volumeMounts.length > 0) {
@@ -178,11 +232,14 @@ export function generateComposeYaml(
 
   // Apply compose overrides via deep merge
   if (appSpec.composeOverrides) {
-    const baseObj = load(yamlStr) as Record<string, unknown>;
     const overrideObj = load(appSpec.composeOverrides) as Record<
       string,
       unknown
     >;
+    if (kind === "stateless") {
+      remapStatelessServiceName(overrideObj, baseName);
+    }
+    const baseObj = load(yamlStr) as Record<string, unknown>;
     deepMerge(baseObj, overrideObj);
     yamlStr = dump(baseObj, {
       lineWidth: 120,
