@@ -224,6 +224,14 @@ export class InMemoryAppRepo implements AppRepository {
     }
   }
 
+  async updateActiveColor(orgId: string, id: string, color: string): Promise<void> {
+    const a = this.orgMap(orgId).get(id);
+    if (a) {
+      a.activeColor = color as App["activeColor"];
+      a.updatedAt = new Date().toISOString();
+    }
+  }
+
   async delete(orgId: string, id: string): Promise<void> {
     this.orgMap(orgId).delete(id);
   }
@@ -750,6 +758,10 @@ export class FakeNodeCommandClient implements NodeCommandClientType {
   deployLogs: NodeCommandLogEntry[] = [];
   deployed: Array<{ serverId: string; appId: string; composeYaml: string }> =
     [];
+  deployedColor: Array<{ serverId: string; appId: string; color: string; composeYaml: string }> =
+    [];
+  stoppedColor: Array<{ serverId: string; appId: string; color: string }> =
+    [];
   built: Array<{
     serverId: string;
     appId: string;
@@ -759,8 +771,25 @@ export class FakeNodeCommandClient implements NodeCommandClientType {
     cloneAuth?: CloneAuth;
   }> = [];
   containerStates: ContainerState[] = [];
+  colorContainerStates: ContainerState[] = [
+    {
+      id: "container-1",
+      name: "test-app-blue",
+      image: "nginx:alpine",
+      project: "test-app",
+      service: "test-app-blue",
+      created: new Date().toISOString(),
+      state: "running",
+      status: "Up 10 seconds",
+      ports: "",
+      health: "healthy",
+    },
+  ];
   deployError?: Error;
   buildError?: Error;
+  deployColorError?: Error;
+  stopColorError?: Error;
+  colorStatusError?: Error;
 
   async *deploy(
     serverId: string,
@@ -815,6 +844,29 @@ export class FakeNodeCommandClient implements NodeCommandClientType {
 
   async isReachable(_serverId: string): Promise<boolean> {
     return true;
+  }
+
+  async *deployColor(
+    serverId: string,
+    appId: string,
+    color: "blue" | "green",
+    composeYaml: string,
+  ): AsyncIterable<NodeCommandLogEntry> {
+    if (this.deployColorError) throw this.deployColorError;
+    this.deployedColor.push({ serverId, appId, color, composeYaml });
+    for (const entry of this.deployLogs) {
+      yield entry;
+    }
+  }
+
+  async stopColor(serverId: string, appId: string, color: "blue" | "green"): Promise<void> {
+    if (this.stopColorError) throw this.stopColorError;
+    this.stoppedColor.push({ serverId, appId, color });
+  }
+
+  async colorStatus(_serverId: string, _appId: string, _color: "blue" | "green"): Promise<ContainerState[]> {
+    if (this.colorStatusError) throw this.colorStatusError;
+    return this.colorContainerStates;
   }
 }
 

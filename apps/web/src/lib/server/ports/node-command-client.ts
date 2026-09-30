@@ -46,4 +46,12 @@ export interface NodeCommandClient {
   status(serverId: string, appId: string): Promise<ContainerState[]>;
   logs(serverId: string, appId: string, lines: number): Promise<LogEntry[]>;
   isReachable(serverId: string): Promise<boolean>;
+  deployColor(
+    serverId: string,
+    appId: string,
+    color: "blue" | "green",
+    composeYaml: string,
+  ): AsyncIterable<LogEntry>;
+  stopColor(serverId: string, appId: string, color: "blue" | "green"): Promise<void>;
+  colorStatus(serverId: string, appId: string, color: "blue" | "green"): Promise<ContainerState[]>;
 }

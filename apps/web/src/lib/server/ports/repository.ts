@@ -95,6 +95,7 @@ export interface AppRepository {
   list(orgId: string): Promise<App[]>;
   listWithSources(orgId: string): Promise<AppWithSource[]>;
   updateStatus(orgId: string, id: string, status: string): Promise<void>;
+  updateActiveColor(orgId: string, id: string, color: string): Promise<void>;
   delete(orgId: string, id: string): Promise<void>;
 }
 

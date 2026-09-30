@@ -36,6 +36,13 @@
       "when": 1788384898962,
       "tag": "0004_add_git_sources",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790284656439,
+      "tag": "0005_aspiring_cobalt_man",
+      "breakpoints": true
     }
   ]
 }

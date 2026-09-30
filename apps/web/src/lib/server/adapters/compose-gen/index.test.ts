@@ -344,7 +344,7 @@ services:
     expect(parsed.volumes).toEqual({ pgdata: null });
   });
 
-  it("does not emit Traefik labels for stateless apps with baseDomain", () => {
+  it("emits Traefik weighted labels for stateless apps with baseDomain", () => {
     const yaml = generateComposeYaml(
       validSpec({
         name: "myapp",
@@ -355,11 +355,30 @@ services:
       { baseDomain: "example.com" },
     );
 
-    expect(yaml).not.toContain("traefik");
+    expect(yaml).toContain("traefik.enable=true");
+    expect(yaml).toContain("Host(`myapp.example.com`)");
+    expect(yaml).toContain("myapp-weighted");
+    expect(yaml).toContain("myapp-blue.weight=100");
+    expect(yaml).toContain("myapp-green.weight=0");
     const services = (load(yaml) as Record<string, unknown>)
       .services as Record<string, unknown>;
     expect(services["myapp-blue"]).toBeDefined();
     expect(services["myapp-green"]).toBeDefined();
+  });
+
+  it("flips Traefik weights when activeColor is green", () => {
+    const yaml = generateComposeYaml(
+      validSpec({
+        name: "myapp",
+        kind: "stateless",
+        image: "nginx:alpine",
+        ports: [{ container: 8080, protocol: "tcp" }],
+      }) as Parameters<typeof generateComposeYaml>[0],
+      { baseDomain: "example.com", activeColor: "green" },
+    );
+
+    expect(yaml).toContain("myapp-blue.weight=0");
+    expect(yaml).toContain("myapp-green.weight=100");
   });
 
   it("treats a missing kind as stateless (two services, no labels)", () => {

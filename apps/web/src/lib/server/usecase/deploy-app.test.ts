@@ -101,6 +101,70 @@ describe("deployApp", () => {
     expect(dep.status).toBe("healthy");
   });
 
+  describe("stateless blue/green", () => {
+    it("first deploy targets blue, sets activeColor, skips drain", async () => {
+      const repo = new InMemoryRepository();
+      const nodeClient = new FakeNodeCommandClient();
+      const deployApp = createDeployApp(repo, nodeClient);
+
+      const result = await deployApp(TEST_ORG_ID, validAppSpec(), "server-bg-1");
+
+      expect(result.app.activeColor).toBe("blue");
+      expect(nodeClient.deployedColor).toHaveLength(1);
+      expect(nodeClient.deployedColor[0].color).toBe("blue");
+      expect(nodeClient.stoppedColor).toHaveLength(0);
+      expect(result.deployment.status).toBe("healthy");
+    });
+
+    it("fails and stops new color when healthcheck never passes", async () => {
+      const repo = new InMemoryRepository();
+      const nodeClient = new FakeNodeCommandClient();
+      nodeClient.colorContainerStates = [
+        { id: "c1", name: "test-app-blue", image: "", project: "", service: "", created: "", state: "running", status: "", ports: "", health: "unhealthy" },
+      ];
+      const deployApp = createDeployApp(repo, nodeClient, {
+        verifyTimeoutMs: 100,
+      });
+
+      await expect(deployApp(TEST_ORG_ID, validAppSpec(), "server-bg-3")).rejects.toThrow(
+        "Health check timeout",
+      );
+
+      const apps = await repo.apps.list(TEST_ORG_ID);
+      expect(apps[0].status).toBe("degraded");
+      expect(apps[0].activeColor).toBeNull();
+      expect(nodeClient.stoppedColor).toHaveLength(1);
+      expect(nodeClient.stoppedColor[0].color).toBe("blue");
+    });
+
+    it("observes FSM states through the deployment record", async () => {
+      const repo = new InMemoryRepository();
+      const nodeClient = new FakeNodeCommandClient();
+      const deployApp = createDeployApp(repo, nodeClient);
+
+      const result = await deployApp(TEST_ORG_ID, validAppSpec(), "server-bg-4");
+      const deps = await repo.deployments.listForApp(TEST_ORG_ID, result.app.id);
+      expect(deps).toHaveLength(1);
+      expect(deps[0].status).toBe("healthy");
+    });
+
+    it("stateful apps use the recreate flow unchanged", async () => {
+      const repo = new InMemoryRepository();
+      const nodeClient = new FakeNodeCommandClient();
+      const deployApp = createDeployApp(repo, nodeClient);
+
+      const result = await deployApp(
+        TEST_ORG_ID,
+        validAppSpec({ kind: "stateful" }),
+        "server-bg-5",
+      );
+
+      expect(result.app.status).toBe("healthy");
+      expect(nodeClient.deployed).toHaveLength(1);
+      expect(nodeClient.deployedColor).toHaveLength(0);
+    });
+  });
+
   describe("git-sourced apps", () => {
     const GIT_URL = "https://github.com/octocat/hello.git";
 
