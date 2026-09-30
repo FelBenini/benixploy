@@ -107,7 +107,11 @@ describe("deployApp", () => {
       const nodeClient = new FakeNodeCommandClient();
       const deployApp = createDeployApp(repo, nodeClient);
 
-      const result = await deployApp(TEST_ORG_ID, validAppSpec(), "server-bg-1");
+      const result = await deployApp(
+        TEST_ORG_ID,
+        validAppSpec(),
+        "server-bg-1",
+      );
 
       expect(result.app.activeColor).toBe("blue");
       expect(nodeClient.deployedColor).toHaveLength(1);
@@ -120,15 +124,26 @@ describe("deployApp", () => {
       const repo = new InMemoryRepository();
       const nodeClient = new FakeNodeCommandClient();
       nodeClient.colorContainerStates = [
-        { id: "c1", name: "test-app-blue", image: "", project: "", service: "", created: "", state: "running", status: "", ports: "", health: "unhealthy" },
+        {
+          id: "c1",
+          name: "test-app-blue",
+          image: "",
+          project: "",
+          service: "",
+          created: "",
+          state: "running",
+          status: "",
+          ports: "",
+          health: "unhealthy",
+        },
       ];
       const deployApp = createDeployApp(repo, nodeClient, {
         verifyTimeoutMs: 100,
       });
 
-      await expect(deployApp(TEST_ORG_ID, validAppSpec(), "server-bg-3")).rejects.toThrow(
-        "Health check timeout",
-      );
+      await expect(
+        deployApp(TEST_ORG_ID, validAppSpec(), "server-bg-3"),
+      ).rejects.toThrow("Health check timeout");
 
       const apps = await repo.apps.list(TEST_ORG_ID);
       expect(apps[0].status).toBe("degraded");
@@ -142,8 +157,15 @@ describe("deployApp", () => {
       const nodeClient = new FakeNodeCommandClient();
       const deployApp = createDeployApp(repo, nodeClient);
 
-      const result = await deployApp(TEST_ORG_ID, validAppSpec(), "server-bg-4");
-      const deps = await repo.deployments.listForApp(TEST_ORG_ID, result.app.id);
+      const result = await deployApp(
+        TEST_ORG_ID,
+        validAppSpec(),
+        "server-bg-4",
+      );
+      const deps = await repo.deployments.listForApp(
+        TEST_ORG_ID,
+        result.app.id,
+      );
       expect(deps).toHaveLength(1);
       expect(deps[0].status).toBe("healthy");
     });

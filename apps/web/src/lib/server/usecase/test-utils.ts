@@ -224,7 +224,11 @@ export class InMemoryAppRepo implements AppRepository {
     }
   }
 
-  async updateActiveColor(orgId: string, id: string, color: string): Promise<void> {
+  async updateActiveColor(
+    orgId: string,
+    id: string,
+    color: string,
+  ): Promise<void> {
     const a = this.orgMap(orgId).get(id);
     if (a) {
       a.activeColor = color as App["activeColor"];
@@ -758,10 +762,13 @@ export class FakeNodeCommandClient implements NodeCommandClientType {
   deployLogs: NodeCommandLogEntry[] = [];
   deployed: Array<{ serverId: string; appId: string; composeYaml: string }> =
     [];
-  deployedColor: Array<{ serverId: string; appId: string; color: string; composeYaml: string }> =
-    [];
-  stoppedColor: Array<{ serverId: string; appId: string; color: string }> =
-    [];
+  deployedColor: Array<{
+    serverId: string;
+    appId: string;
+    color: string;
+    composeYaml: string;
+  }> = [];
+  stoppedColor: Array<{ serverId: string; appId: string; color: string }> = [];
   built: Array<{
     serverId: string;
     appId: string;
@@ -859,12 +866,20 @@ export class FakeNodeCommandClient implements NodeCommandClientType {
     }
   }
 
-  async stopColor(serverId: string, appId: string, color: "blue" | "green"): Promise<void> {
+  async stopColor(
+    serverId: string,
+    appId: string,
+    color: "blue" | "green",
+  ): Promise<void> {
     if (this.stopColorError) throw this.stopColorError;
     this.stoppedColor.push({ serverId, appId, color });
   }
 
-  async colorStatus(_serverId: string, _appId: string, _color: "blue" | "green"): Promise<ContainerState[]> {
+  async colorStatus(
+    _serverId: string,
+    _appId: string,
+    _color: "blue" | "green",
+  ): Promise<ContainerState[]> {
     if (this.colorStatusError) throw this.colorStatusError;
     return this.colorContainerStates;
   }

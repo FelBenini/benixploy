@@ -158,11 +158,7 @@ export function createDeployApp(
           deps.verifyTimeoutMs ?? VERIFY_TIMEOUT_MS,
         );
         if (!healthy) {
-          await nodeClient.stopColor(
-            serverId,
-            createdApp.id,
-            inactiveColor,
-          );
+          await nodeClient.stopColor(serverId, createdApp.id, inactiveColor);
           await repo.deployments.updateStatus(
             orgId,
             createdDeployment.id,
@@ -179,11 +175,7 @@ export function createDeployApp(
           createdDeployment.id,
           "cutover",
         );
-        await repo.apps.updateActiveColor(
-          orgId,
-          createdApp.id,
-          inactiveColor,
-        );
+        await repo.apps.updateActiveColor(orgId, createdApp.id, inactiveColor);
 
         const cutoverCompose = generateComposeYaml(appSpec, {
           appId: createdApp.id,
@@ -204,11 +196,7 @@ export function createDeployApp(
           "drain_old",
         );
         if (oldColor) {
-          await nodeClient.stopColor(
-            serverId,
-            createdApp.id,
-            oldColor,
-          );
+          await nodeClient.stopColor(serverId, createdApp.id, oldColor);
         }
       }
     } catch (err) {

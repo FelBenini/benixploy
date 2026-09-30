@@ -580,9 +580,14 @@ export class SshNodeCommandClient implements NodeCommandClient {
         message: "Uploaded docker-compose.yml",
       };
 
-      const { stdout, stderr } = await this.execAction(client, appId, "deploy-color", {
-        extra: color,
-      });
+      const { stdout, stderr } = await this.execAction(
+        client,
+        appId,
+        "deploy-color",
+        {
+          extra: color,
+        },
+      );
 
       for (const entry of this.parseLogs(stdout, "stdout")) {
         yield entry;
@@ -595,19 +600,31 @@ export class SshNodeCommandClient implements NodeCommandClient {
     }
   }
 
-  async stopColor(serverId: string, appId: string, color: "blue" | "green"): Promise<void> {
+  async stopColor(
+    serverId: string,
+    appId: string,
+    color: "blue" | "green",
+  ): Promise<void> {
     this.validateAppId(appId);
     this.validateColor(color);
     await this.withConnection(serverId, (client) =>
-      this.execAction(client, appId, "stop-color", { extra: color }).then(() => {}),
+      this.execAction(client, appId, "stop-color", { extra: color }).then(
+        () => {},
+      ),
     );
   }
 
-  async colorStatus(serverId: string, appId: string, color: "blue" | "green"): Promise<ContainerState[]> {
+  async colorStatus(
+    serverId: string,
+    appId: string,
+    color: "blue" | "green",
+  ): Promise<ContainerState[]> {
     this.validateAppId(appId);
     this.validateColor(color);
     return this.withConnection(serverId, async (client) => {
-      const { stdout } = await this.execAction(client, appId, "color-status", { extra: color });
+      const { stdout } = await this.execAction(client, appId, "color-status", {
+        extra: color,
+      });
       return this.parseContainerState(stdout);
     });
   }

@@ -221,10 +221,14 @@ export function generateComposeYaml(
   if (kind === "stateless") {
     const containerPort =
       appSpec.ports.length > 0 ? appSpec.ports[0].container : 80;
-    const weightLabels =
-      options?.baseDomain
-        ? buildWeightLabels(baseName, options.baseDomain, options.activeColor, containerPort)
-        : undefined;
+    const weightLabels = options?.baseDomain
+      ? buildWeightLabels(
+          baseName,
+          options.baseDomain,
+          options.activeColor,
+          containerPort,
+        )
+      : undefined;
     services[`${baseName}-blue`] = buildService(
       appSpec,
       options,
@@ -238,8 +242,10 @@ export function generateComposeYaml(
       false,
     );
     if (weightLabels) {
-      (services[`${baseName}-blue`] as Record<string, unknown>).labels = weightLabels;
-      (services[`${baseName}-green`] as Record<string, unknown>).labels = weightLabels;
+      (services[`${baseName}-blue`] as Record<string, unknown>).labels =
+        weightLabels;
+      (services[`${baseName}-green`] as Record<string, unknown>).labels =
+        weightLabels;
     }
   } else {
     services[baseName] = buildService(appSpec, options, baseName, true);

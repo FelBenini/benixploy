@@ -152,7 +152,9 @@ describe("SshNodeCommandClient", () => {
       const gen = client.deployColor("srv-1", "myapp", "red" as "blue", "yaml");
       let threw = false;
       try {
-        for await (const _ of gen) { /* */ }
+        for await (const _ of gen) {
+          /* */
+        }
       } catch (e) {
         threw = true;
         expect((e as Error).message).toContain("Invalid color");
@@ -162,16 +164,16 @@ describe("SshNodeCommandClient", () => {
 
     it("stopColor throws on invalid color", async () => {
       client = new SshNodeCommandClient(vi.fn());
-      await expect(client.stopColor("srv-1", "myapp", "red" as "blue")).rejects.toThrow(
-        "Invalid color",
-      );
+      await expect(
+        client.stopColor("srv-1", "myapp", "red" as "blue"),
+      ).rejects.toThrow("Invalid color");
     });
 
     it("colorStatus throws on invalid color", async () => {
       client = new SshNodeCommandClient(vi.fn());
-      await expect(client.colorStatus("srv-1", "myapp", "red" as "blue")).rejects.toThrow(
-        "Invalid color",
-      );
+      await expect(
+        client.colorStatus("srv-1", "myapp", "red" as "blue"),
+      ).rejects.toThrow("Invalid color");
     });
 
     it("deployColor throws on connection failure", async () => {
@@ -179,7 +181,9 @@ describe("SshNodeCommandClient", () => {
       const gen = client.deployColor("srv-1", "myapp", "blue", "yaml");
       let threw = false;
       try {
-        for await (const _ of gen) { /* */ }
+        for await (const _ of gen) {
+          /* */
+        }
       } catch (e) {
         threw = true;
         expect(e).toBeInstanceOf(SshConnectionError);
@@ -196,9 +200,9 @@ describe("SshNodeCommandClient", () => {
 
     it("colorStatus throws on connection failure", async () => {
       client = new SshNodeCommandClient(vi.fn().mockResolvedValue(null));
-      await expect(client.colorStatus("srv-1", "myapp", "blue")).rejects.toThrow(
-        SshConnectionError,
-      );
+      await expect(
+        client.colorStatus("srv-1", "myapp", "blue"),
+      ).rejects.toThrow(SshConnectionError);
     });
 
     it("deploy throws on validation failure", async () => {

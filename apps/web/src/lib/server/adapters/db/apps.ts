@@ -94,7 +94,11 @@ export class DrizzleAppRepository implements AppRepository {
       .where(and(eq(apps.id, id), eq(apps.orgId, orgId)));
   }
 
-  async updateActiveColor(orgId: string, id: string, color: string): Promise<void> {
+  async updateActiveColor(
+    orgId: string,
+    id: string,
+    color: string,
+  ): Promise<void> {
     await this.db
       .update(apps)
       .set({ activeColor: color, updatedAt: new Date() })

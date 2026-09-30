@@ -52,6 +52,14 @@ export interface NodeCommandClient {
     color: "blue" | "green",
     composeYaml: string,
   ): AsyncIterable<LogEntry>;
-  stopColor(serverId: string, appId: string, color: "blue" | "green"): Promise<void>;
-  colorStatus(serverId: string, appId: string, color: "blue" | "green"): Promise<ContainerState[]>;
+  stopColor(
+    serverId: string,
+    appId: string,
+    color: "blue" | "green",
+  ): Promise<void>;
+  colorStatus(
+    serverId: string,
+    appId: string,
+    color: "blue" | "green",
+  ): Promise<ContainerState[]>;
 }

@@ -360,8 +360,10 @@ services:
     expect(yaml).toContain("myapp-weighted");
     expect(yaml).toContain("myapp-blue.weight=100");
     expect(yaml).toContain("myapp-green.weight=0");
-    const services = (load(yaml) as Record<string, unknown>)
-      .services as Record<string, unknown>;
+    const services = (load(yaml) as Record<string, unknown>).services as Record<
+      string,
+      unknown
+    >;
     expect(services["myapp-blue"]).toBeDefined();
     expect(services["myapp-green"]).toBeDefined();
   });
@@ -389,8 +391,10 @@ services:
       }) as Parameters<typeof generateComposeYaml>[0],
     );
 
-    const services = (load(yaml) as Record<string, unknown>)
-      .services as Record<string, unknown>;
+    const services = (load(yaml) as Record<string, unknown>).services as Record<
+      string,
+      unknown
+    >;
     expect(services["default-app-blue"]).toBeDefined();
     expect(services["default-app-green"]).toBeDefined();
     expect(yaml).not.toContain("traefik");
@@ -406,8 +410,10 @@ services:
       }) as Parameters<typeof generateComposeYaml>[0],
     );
 
-    const services = (load(yaml) as Record<string, unknown>)
-      .services as Record<string, unknown>;
+    const services = (load(yaml) as Record<string, unknown>).services as Record<
+      string,
+      unknown
+    >;
     expect(services["stateful-app"]).toBeDefined();
     expect(services["stateful-app-blue"]).toBeUndefined();
     expect(services["stateful-app-green"]).toBeUndefined();
@@ -419,12 +425,16 @@ services:
         name: "db-app",
         kind: "database",
         image: "postgres:16",
-        volumeMounts: [{ source: "pgdata", target: "/var/lib/postgresql/data" }],
+        volumeMounts: [
+          { source: "pgdata", target: "/var/lib/postgresql/data" },
+        ],
       }) as Parameters<typeof generateComposeYaml>[0],
     );
 
-    const services = (load(yaml) as Record<string, unknown>)
-      .services as Record<string, unknown>;
+    const services = (load(yaml) as Record<string, unknown>).services as Record<
+      string,
+      unknown
+    >;
     expect(services["db-app"]).toBeDefined();
     expect(services["db-app-blue"]).toBeUndefined();
     expect(services["db-app-green"]).toBeUndefined();
@@ -441,8 +451,10 @@ services:
       { appId: "abc-123", version: 1 },
     );
 
-    const services = (load(yaml) as Record<string, unknown>)
-      .services as Record<string, unknown>;
+    const services = (load(yaml) as Record<string, unknown>).services as Record<
+      string,
+      unknown
+    >;
     const blue = services["git-app-blue"] as Record<string, unknown>;
     const green = services["git-app-green"] as Record<string, unknown>;
     expect(blue.build).toEqual({ context: "./build-context" });
@@ -467,13 +479,15 @@ services:
       }) as Parameters<typeof generateComposeYaml>[0],
     );
 
-    const services = (load(yaml) as Record<string, unknown>)
-      .services as Record<string, unknown>;
-    expect((services["override-app-blue"] as Record<string, unknown>).environment).toEqual(
-      { BASE: "val", OVERRIDDEN: "yes" },
-    );
-    expect((services["override-app-green"] as Record<string, unknown>).environment).toEqual(
-      { BASE: "val", OVERRIDDEN: "yes" },
-    );
+    const services = (load(yaml) as Record<string, unknown>).services as Record<
+      string,
+      unknown
+    >;
+    expect(
+      (services["override-app-blue"] as Record<string, unknown>).environment,
+    ).toEqual({ BASE: "val", OVERRIDDEN: "yes" });
+    expect(
+      (services["override-app-green"] as Record<string, unknown>).environment,
+    ).toEqual({ BASE: "val", OVERRIDDEN: "yes" });
   });
 });
