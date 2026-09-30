@@ -13,6 +13,13 @@ export interface ComposeGenOptions {
    * built image deterministically.
    */
   version?: number;
+  /**
+   * Active color for stateless blue/g deployments. When provided with
+   * baseDomain, Traefik weighted-service labels are emitted so the active
+   * color receives 100% traffic and the inactive color receives 0%.
+   * ponytail: compose-label stopgap; #63 replaces with file-provider atomic flip.
+   */
+  activeColor?: "blue" | "green";
 }
 
 export function isHttpUrl(value: string): boolean {
@@ -153,6 +160,30 @@ function buildService(
   return svc;
 }
 
+function buildWeightLabels(
+  baseName: string,
+  baseDomain: string,
+  activeColor: "blue" | "green" | undefined,
+  containerPort: number,
+): string[] {
+  const routerName = sanitize(baseName);
+  const hostname = `${routerName}.${baseDomain}`;
+  const blueWeight = activeColor === "green" ? 0 : 100;
+  const greenWeight = activeColor === "green" ? 100 : 0;
+
+  return [
+    "traefik.enable=true",
+    `traefik.http.routers.${routerName}.rule=Host(\`${hostname}\`)`,
+    `traefik.http.routers.${routerName}.entrypoints=websecure`,
+    `traefik.http.routers.${routerName}.tls.certresolver=letsencrypt`,
+    `traefik.http.routers.${routerName}.service=${routerName}-weighted`,
+    `traefik.http.services.${routerName}-weighted.weighted.services.${routerName}-blue.weight=${blueWeight}`,
+    `traefik.http.services.${routerName}-weighted.weighted.services.${routerName}-green.weight=${greenWeight}`,
+    `traefik.http.services.${routerName}-blue.loadbalancer.server.port=${containerPort}`,
+    `traefik.http.services.${routerName}-green.loadbalancer.server.port=${containerPort}`,
+  ];
+}
+
 /**
  * Stateless output has two services (`<name>-blue` / `<name>-green`).
  * Compose overrides written against the base service name `services.<name>`
@@ -188,8 +219,16 @@ export function generateComposeYaml(
 
   const services: Record<string, unknown> = {};
   if (kind === "stateless") {
-    // Blue/green pair. Traefik routing for stateless apps is owned by the
-    // dynamic-config writer (issue #63) — no labels emitted here on purpose.
+    const containerPort =
+      appSpec.ports.length > 0 ? appSpec.ports[0].container : 80;
+    const weightLabels = options?.baseDomain
+      ? buildWeightLabels(
+          baseName,
+          options.baseDomain,
+          options.activeColor,
+          containerPort,
+        )
+      : undefined;
     services[`${baseName}-blue`] = buildService(
       appSpec,
       options,
@@ -202,6 +241,12 @@ export function generateComposeYaml(
       `${baseName}-green`,
       false,
     );
+    if (weightLabels) {
+      (services[`${baseName}-blue`] as Record<string, unknown>).labels =
+        weightLabels;
+      (services[`${baseName}-green`] as Record<string, unknown>).labels =
+        weightLabels;
+    }
   } else {
     services[baseName] = buildService(appSpec, options, baseName, true);
   }

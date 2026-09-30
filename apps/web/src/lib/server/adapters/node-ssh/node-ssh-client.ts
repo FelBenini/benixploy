@@ -163,6 +163,12 @@ export class SshNodeCommandClient implements NodeCommandClient {
     }
   }
 
+  private validateColor(color: string): asserts color is "blue" | "green" {
+    if (color !== "blue" && color !== "green") {
+      throw new Error(`Invalid color: "${color}". Must be "blue" or "green"`);
+    }
+  }
+
   private async getServer(serverId: string): Promise<Server> {
     const server = await this.resolveServer(serverId);
     if (!server) {
@@ -552,5 +558,74 @@ export class SshNodeCommandClient implements NodeCommandClient {
     } catch {
       return false;
     }
+  }
+
+  async *deployColor(
+    serverId: string,
+    appId: string,
+    color: "blue" | "green",
+    composeYaml: string,
+  ): AsyncIterable<LogEntry> {
+    this.validateAppId(appId);
+    this.validateColor(color);
+    const server = await this.getServer(serverId);
+    const client = await this.createConnection(server);
+
+    try {
+      await this.uploadComposeFile(server, appId, composeYaml);
+
+      yield {
+        timestamp: new Date().toISOString(),
+        stream: "stdout",
+        message: "Uploaded docker-compose.yml",
+      };
+
+      const { stdout, stderr } = await this.execAction(
+        client,
+        appId,
+        "deploy-color",
+        {
+          extra: color,
+        },
+      );
+
+      for (const entry of this.parseLogs(stdout, "stdout")) {
+        yield entry;
+      }
+      for (const entry of this.parseLogs(stderr, "stderr")) {
+        yield entry;
+      }
+    } finally {
+      client.end();
+    }
+  }
+
+  async stopColor(
+    serverId: string,
+    appId: string,
+    color: "blue" | "green",
+  ): Promise<void> {
+    this.validateAppId(appId);
+    this.validateColor(color);
+    await this.withConnection(serverId, (client) =>
+      this.execAction(client, appId, "stop-color", { extra: color }).then(
+        () => {},
+      ),
+    );
+  }
+
+  async colorStatus(
+    serverId: string,
+    appId: string,
+    color: "blue" | "green",
+  ): Promise<ContainerState[]> {
+    this.validateAppId(appId);
+    this.validateColor(color);
+    return this.withConnection(serverId, async (client) => {
+      const { stdout } = await this.execAction(client, appId, "color-status", {
+        extra: color,
+      });
+      return this.parseContainerState(stdout);
+    });
   }
 }

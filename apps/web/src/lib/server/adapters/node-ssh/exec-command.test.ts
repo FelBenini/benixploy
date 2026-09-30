@@ -279,4 +279,40 @@ exit 128
     expect(gitLog).toContain("CONFIG_COUNT:");
     expect(gitLog).not.toMatch(/CONFIG_COUNT:\d/);
   });
+
+  describe("color actions", () => {
+    it("deploy-color runs docker compose up -d for the given color", () => {
+      const sb = makeSandbox();
+      const res = sb.run("deploy-color app-1 blue\n", true);
+      expect(res.exitCode).toBe(0);
+      expect(res.stdout).toContain('"action":"deploy-color"');
+      expect(sb.dockerLog()).toContain("ARGS:compose -f");
+      expect(sb.dockerLog()).toContain("up -d app-1-blue");
+    });
+
+    it("stop-color runs docker compose stop for the given color", () => {
+      const sb = makeSandbox();
+      const res = sb.run("stop-color app-1 green\n", true);
+      expect(res.exitCode).toBe(0);
+      expect(res.stdout).toContain('"action":"stop-color"');
+      expect(sb.dockerLog()).toContain("ARGS:compose -f");
+      expect(sb.dockerLog()).toContain("stop app-1-green");
+    });
+
+    it("color-status runs docker compose ps for the given color", () => {
+      const sb = makeSandbox();
+      const res = sb.run("color-status app-1 blue\n", true);
+      expect(res.exitCode).toBe(0);
+      expect(res.stdout).toContain('"action":"color-status"');
+      expect(sb.dockerLog()).toContain("ARGS:compose -f");
+      expect(sb.dockerLog()).toContain("ps --format json app-1-blue");
+    });
+
+    it("rejects invalid colors", () => {
+      const sb = makeSandbox();
+      const res = sb.run("deploy-color app-1 red\n");
+      expect(res.exitCode).toBe(2);
+      expect(res.stderr).toContain("invalid color");
+    });
+  });
 });

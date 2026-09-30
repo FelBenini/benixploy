@@ -7,6 +7,9 @@ export const DeploymentStatusSchema = z.enum([
   "awaiting_confirmation",
   "executing",
   "verifying",
+  "verifying_new",
+  "cutover",
+  "drain_old",
   "healthy",
   "failed",
   "rolled_back",
@@ -27,6 +30,11 @@ export const DeploymentSchema = z.object({
     .describe(
       "The generated docker-compose.yml used for this deployment, stored for rollback",
     ),
+  color: z
+    .enum(["blue", "green"])
+    .nullable()
+    .optional()
+    .describe("Color targeted by this deployment (stateless apps only)"),
   version: z
     .number()
     .int()

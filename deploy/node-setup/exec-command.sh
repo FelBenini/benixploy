@@ -90,6 +90,14 @@ validate_commit() {
     fi
 }
 
+validate_color() {
+    color="$1"
+    case "$color" in
+        blue|green) ;;
+        *) die "invalid color: '$color' — must be blue or green" 2 ;;
+    esac
+}
+
 # Replace any known secret with [REDACTED] before relaying output to the
 # control plane. Secrets are provider-issued alphanumeric tokens, so awk
 # gsub is regex-safe for them.
@@ -302,6 +310,42 @@ do_exec() {
     docker compose -f "$compose" exec -T "$service" "$@"
 }
 
+do_deploy_color() {
+    app_id="$1"
+    color="$2"
+    validate_color "$color"
+    check_app_exists "$app_id"
+
+    compose="$(compose_file "$app_id")"
+    docker compose -f "$compose" up -d "${app_id}-${color}" >&2
+
+    printf '{"action":"deploy-color","app_id":"%s","color":"%s","status":"ok"}\n' "$app_id" "$color"
+}
+
+do_stop_color() {
+    app_id="$1"
+    color="$2"
+    validate_color "$color"
+    check_app_exists "$app_id"
+
+    compose="$(compose_file "$app_id")"
+    docker compose -f "$compose" stop "${app_id}-${color}" >&2
+
+    printf '{"action":"stop-color","app_id":"%s","color":"%s","status":"ok"}\n' "$app_id" "$color"
+}
+
+do_color_status() {
+    app_id="$1"
+    color="$2"
+    validate_color "$color"
+    check_app_exists "$app_id"
+
+    compose="$(compose_file "$app_id")"
+    printf '{"action":"color-status","app_id":"%s","color":"%s","containers":' "$app_id" "$color"
+    docker compose -f "$compose" ps --format json "${app_id}-${color}" 2>/dev/null || printf '[]'
+    printf '}\n'
+}
+
 do_system_info() {
     os="$(uname -s)"
     arch="$(uname -m)"
@@ -380,10 +424,19 @@ case "$action" in
     logs)
         do_logs "$app_id" "${1:-100}"
         ;;
+    deploy-color)
+        do_deploy_color "$app_id" "${1:-}"
+        ;;
+    stop-color)
+        do_stop_color "$app_id" "${1:-}"
+        ;;
+    color-status)
+        do_color_status "$app_id" "${1:-}"
+        ;;
     exec)
         do_exec "$app_id" "$@"
         ;;
     *)
-        die "unknown action: '$action' — valid: deploy|restart|stop|delete|status|logs|exec|build|system_info|version" 2
+        die "unknown action: '$action' — valid: deploy|restart|stop|delete|status|logs|exec|build|deploy-color|stop-color|color-status|system_info|version" 2
         ;;
 esac
