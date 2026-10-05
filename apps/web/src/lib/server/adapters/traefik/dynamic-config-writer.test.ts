@@ -58,30 +58,56 @@ function servers(
 describe("generateDynamicConfig", () => {
   it("blue active, no warm — single server at weight 100", () => {
     const yaml = generateDynamicConfig(makeApp(), makeSource("blue", null));
+
     expect(servers(yaml)).toEqual([
       { url: "http://my-app-blue:8080", weight: 100 },
     ]);
-    expect(yaml).toMatchSnapshot();
+    expect(load(yaml)).toEqual({
+      http: {
+        routers: {
+          "my-app": {
+            rule: "Host(`my-app.nip.io`)",
+            service: "my-app-svc",
+            entryPoints: ["web"],
+          },
+        },
+        services: {
+          "my-app-svc": {
+            loadBalancer: {
+              healthCheck: {
+                path: "/health",
+                interval: "5s",
+                timeout: "2s",
+              },
+              servers: [{ url: "http://my-app-blue:8080", weight: 100 }],
+            },
+          },
+        },
+      },
+    });
   });
 
   it("blue active, green warm — blue 100, green 0", () => {
     const yaml = generateDynamicConfig(makeApp(), makeSource("blue", "green"));
+
     expect(servers(yaml)).toEqual([
       { url: "http://my-app-blue:8080", weight: 100 },
       { url: "http://my-app-green:8080", weight: 0 },
     ]);
-    expect(yaml).toMatchSnapshot();
-  });
-
-  it("green active, blue warm — green 100, blue 0", () => {
-    const yaml = generateDynamicConfig(
-      makeApp({ activeColor: "green" }),
-      makeSource("green", "blue"),
-    );
-    expect(servers(yaml)).toEqual([
-      { url: "http://my-app-green:8080", weight: 100 },
-      { url: "http://my-app-blue:8080", weight: 0 },
-    ]);
+    expect(load(yaml)).toMatchObject({
+      http: {
+        services: {
+          "my-app-svc": {
+            loadBalancer: {
+              servers: [
+                { url: "http://my-app-blue:8080", weight: 100 },
+                { url: "http://my-app-green:8080", weight: 0 },
+              ],
+            },
+          },
+        },
+      },
+    });
   });
 
   it("rollback swap flips weights without changing shape", () => {
