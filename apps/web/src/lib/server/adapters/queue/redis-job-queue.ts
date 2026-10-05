@@ -15,10 +15,6 @@ function inflightKey(appId: string): string {
   return `${INFLIGHT_PREFIX}${appId}`;
 }
 
-// ponytail: single consumer, no retry, no dead-letter. Redis list + an inflight
-// key with TTL. Upgrade to RabbitMQ when you need multi-consumer fan-out,
-// guaranteed delivery, or per-job retry semantics. A crash mid-job loses that
-// job (the next push resolves it) — same trade-off the MVP accepts.
 export class RedisJobQueue implements JobQueue {
   private readonly consumer: Redis;
   private stopping = false;
