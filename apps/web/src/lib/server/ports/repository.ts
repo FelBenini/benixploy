@@ -20,6 +20,11 @@ import type {
   UpsertGitConnectionInput,
 } from "../domain/git-connection";
 import type { GitSource, UpsertGitSourceInput } from "../domain/git-source";
+import type {
+  PushEvent,
+  PushEventStatus,
+  CreatePushEventInput,
+} from "../domain/push-event";
 
 export interface DbExecutor {
   insert(table: unknown): {
@@ -225,6 +230,18 @@ export interface GitSourceRepository {
   clearWarmColor(appId: string): Promise<void>;
 }
 
+export interface PushEventRepository {
+  create(input: CreatePushEventInput): Promise<PushEvent>;
+  findByAppId(appId: string, limit?: number): Promise<PushEvent[]>;
+  findByDeliveryId(deliveryId: string): Promise<PushEvent | null>;
+  findInProgressByAppId(appId: string): Promise<PushEvent | null>;
+  updateStatus(
+    id: string,
+    status: PushEventStatus,
+    deployJobId?: string | null,
+  ): Promise<void>;
+}
+
 export interface Repository {
   servers: ServerRepository;
   apps: AppRepository;
@@ -239,4 +256,5 @@ export interface Repository {
   registrationTokens: RegistrationTokenRepository;
   gitConnections: GitConnectionRepository;
   gitSources: GitSourceRepository;
+  pushEvents: PushEventRepository;
 }
