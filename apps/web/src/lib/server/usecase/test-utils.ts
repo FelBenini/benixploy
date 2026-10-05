@@ -758,6 +758,7 @@ export class FakeNodeCommandClient implements NodeCommandClientType {
     commit?: string;
     cloneAuth?: CloneAuth;
   }> = [];
+  traefikWrites: Array<{ serverId: string; appId: string; yaml: string }> = [];
   containerStates: ContainerState[] = [];
   deployError?: Error;
   buildError?: Error;
@@ -791,6 +792,14 @@ export class FakeNodeCommandClient implements NodeCommandClientType {
       commit,
       cloneAuth,
     });
+  }
+
+  async writeTraefikDynamic(
+    serverId: string,
+    appId: string,
+    yaml: string,
+  ): Promise<void> {
+    this.traefikWrites.push({ serverId, appId, yaml });
   }
 
   async restart(_serverId: string, _appId: string): Promise<void> {}

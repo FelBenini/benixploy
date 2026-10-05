@@ -11,6 +11,7 @@ import { computeHostFingerprint } from "./ssh-provision-client";
 
 const APP_ID_PATTERN = /^[a-zA-Z0-9_-]+$/;
 const APPS_BASE_PATH = "/opt/benisploy/apps";
+const TRAEFIK_DYNAMIC_DIR = "/opt/benisploy/traefik/dynamic";
 const GIT_URL_PATTERN = /^https?:\/\/[^\s]+$/;
 const COMMIT_PATTERN = /^[a-zA-Z0-9._/-]+$/;
 
@@ -254,36 +255,59 @@ export class SshNodeCommandClient implements NodeCommandClient {
     }
   }
 
+  private async withSftp<T>(
+    server: Server,
+    fn: (sftp: SFTPClient) => Promise<T>,
+  ): Promise<T> {
+    const sftp = new SFTPClient();
+    try {
+      await sftp.connect({
+        host: server.address,
+        port: server.sshPort ?? 22,
+        username: server.sshUser ?? "root",
+        privateKey: server.sshPrivateKey,
+        readyTimeout: 15_000,
+        hostVerifier: this.buildHostVerifier(server),
+      } as Record<string, unknown>);
+      return await fn(sftp);
+    } finally {
+      await sftp.end().catch(() => {});
+    }
+  }
+
   private uploadComposeFile(
     server: Server,
     appId: string,
     composeYaml: string,
   ): Promise<void> {
-    return (async () => {
+    return this.withSftp(server, async (sftp) => {
       const remoteDir = `${APPS_BASE_PATH}/${appId}`;
       const remotePath = `${remoteDir}/docker-compose.yml`;
 
-      const sftp = new SFTPClient();
-      try {
-        await sftp.connect({
-          host: server.address,
-          port: server.sshPort ?? 22,
-          username: server.sshUser ?? "root",
-          privateKey: server.sshPrivateKey,
-          readyTimeout: 15_000,
-          hostVerifier: this.buildHostVerifier(server),
-        } as Record<string, unknown>);
-        await (
-          sftp.mkdir as unknown as (
-            path: string,
-            recursive: boolean,
-          ) => Promise<string>
-        )(remoteDir, true);
-        await sftp.put(Buffer.from(composeYaml), remotePath);
-      } finally {
-        await sftp.end().catch(() => {});
-      }
-    })();
+      await (
+        sftp.mkdir as unknown as (
+          path: string,
+          recursive: boolean,
+        ) => Promise<string>
+      )(remoteDir, true);
+      await sftp.put(Buffer.from(composeYaml), remotePath);
+    });
+  }
+
+  async writeTraefikDynamic(
+    serverId: string,
+    appId: string,
+    yaml: string,
+  ): Promise<void> {
+    this.validateAppId(appId);
+    const server = await this.getServer(serverId);
+    const remotePath = `${TRAEFIK_DYNAMIC_DIR}/${appId}.yml`;
+    const tmpPath = `${remotePath}.tmp`;
+
+    await this.withSftp(server, async (sftp) => {
+      await sftp.put(Buffer.from(yaml), tmpPath);
+      await sftp.rename(tmpPath, remotePath);
+    });
   }
 
   private execAction(

@@ -217,6 +217,22 @@ describe("SshNodeCommandClient", () => {
     });
   });
 
+  describe("writeTraefikDynamic validation", () => {
+    it("rejects invalid app IDs before connecting", async () => {
+      client = new SshNodeCommandClient(vi.fn());
+      await expect(
+        client.writeTraefikDynamic("srv-1", "../../etc/passwd", "http: {}"),
+      ).rejects.toThrow("Invalid app ID");
+    });
+
+    it("throws SshConnectionError when server not found", async () => {
+      client = new SshNodeCommandClient(vi.fn().mockResolvedValue(null));
+      await expect(
+        client.writeTraefikDynamic("srv-1", "myapp", "http: {}"),
+      ).rejects.toThrow(SshConnectionError);
+    });
+  });
+
   describe("cloneAuthToPayload", () => {
     it("returns empty payload when no auth is provided", () => {
       expect(cloneAuthToPayload(undefined)).toEqual({});

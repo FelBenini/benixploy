@@ -71,11 +71,14 @@ describe("SshNodeCommandClient integration", () => {
     ]);
 
     await container.exec(["mkdir", "-p", "/opt/benisploy/apps"]);
+    await container.exec(["mkdir", "-p", "/opt/benisploy/traefik/dynamic"]);
     await container.exec([
       "chmod",
       "755",
       "/opt/benisploy",
       "/opt/benisploy/apps",
+      "/opt/benisploy/traefik",
+      "/opt/benisploy/traefik/dynamic",
     ]);
     await container.exec([
       "chown",
@@ -187,6 +190,25 @@ describe("SshNodeCommandClient integration", () => {
       (e) => e.message.includes("Created") || e.message.includes("Started"),
     );
     expect(deployEntries.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("writeTraefikDynamic atomically writes the dynamic config", async () => {
+    const yaml = "http:\n  routers:\n    test-app: {}\n";
+    await client.writeTraefikDynamic(server.id, "test-app", yaml);
+
+    const written = await container.exec([
+      "cat",
+      "/opt/benisploy/traefik/dynamic/test-app.yml",
+    ]);
+    expect(written.exitCode).toBe(0);
+    expect(written.output).toContain("routers");
+
+    const leftoverTmp = await container.exec([
+      "bash",
+      "-c",
+      "test -e /opt/benisploy/traefik/dynamic/test-app.yml.tmp && echo yes || echo no",
+    ]);
+    expect(leftoverTmp.output.trim()).toBe("no");
   });
 
   it("restart does not throw", async () => {

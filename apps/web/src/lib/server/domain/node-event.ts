@@ -2,7 +2,13 @@ export interface NodeEvent {
   id: string;
   serverId: string;
   appId?: string;
-  eventType: "die" | "oom" | "unhealthy" | "restart_loop";
+  eventType:
+    | "die"
+    | "oom"
+    | "unhealthy"
+    | "restart_loop"
+    | "traefik_reload_ok"
+    | "traefik_reload_failed";
   payload: Record<string, unknown>;
   receivedAt: string;
 }
