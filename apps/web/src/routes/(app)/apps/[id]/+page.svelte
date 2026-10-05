@@ -7,6 +7,7 @@
   let { data } = $props();
   const item = $derived(data.app);
   const gitSource = $derived(data.gitSource);
+  const traffic = $derived(data.traffic);
   const currentDeployment = $derived(data.currentDeployment);
 
   let activeTab = $state("general");
@@ -30,7 +31,7 @@
       <GeneralTab {item} deployment={currentDeployment} />
     </Tabs.Content>
     <Tabs.Content value="source">
-      <SourcePanel source={gitSource} />
+      <SourcePanel source={gitSource} {traffic} />
     </Tabs.Content>
   </Tabs.Root>
 </div>

@@ -5,6 +5,7 @@
   import GitCommit from "@lucide/svelte/icons/git-commit";
   import Clock from "@lucide/svelte/icons/clock";
   import Layers from "@lucide/svelte/icons/layers";
+  import Activity from "@lucide/svelte/icons/activity";
 
   interface GitSourceInfo {
     provider: string;
@@ -19,7 +20,16 @@
     lastPushAt: string | null;
   }
 
-  let { source }: { source: GitSourceInfo | null } = $props();
+  interface TrafficInfo {
+    color: string | null;
+    lastFlipAt: string | null;
+    healthy: boolean;
+  }
+
+  let {
+    source,
+    traffic = null,
+  }: { source: GitSourceInfo | null; traffic?: TrafficInfo | null } = $props();
 
   let now = $state(Date.now());
 
@@ -42,7 +52,15 @@
     if (!expiresAt) return null;
     const ms = new Date(expiresAt).getTime() - now;
     if (ms <= 0) return null;
-    const totalMin = Math.floor(ms / 60000);
+    return formatDuration(ms);
+  }
+
+  function relativeSince(iso: string): string {
+    return formatDuration(now - new Date(iso).getTime());
+  }
+
+  function formatDuration(ms: number): string {
+    const totalMin = Math.floor(Math.max(ms, 0) / 60000);
     if (totalMin >= 60) {
       const h = Math.floor(totalMin / 60);
       const m = totalMin % 60;
@@ -104,6 +122,31 @@
           </Badge>
         {/if}
       </div>
+
+      {#if traffic}
+        <div class="flex items-center gap-2 text-xs">
+          <Activity
+            class="size-3 shrink-0 {traffic.healthy
+              ? 'text-emerald-400'
+              : 'text-red-400'}"
+          />
+          {#if traffic.healthy}
+            <span class="text-muted-foreground">
+              Traffic: {traffic.color}
+              {#if traffic.lastFlipAt}
+                &middot; flipped {relativeSince(traffic.lastFlipAt)} ago
+                &middot; healthy reload
+              {:else}
+                &middot; no flips recorded yet
+              {/if}
+            </span>
+          {:else}
+            <span class="text-red-400">
+              Traffic: {traffic.color} &middot; reload FAILED — see logs
+            </span>
+          {/if}
+        </div>
+      {/if}
 
       <div class="flex items-center gap-2 text-xs text-muted-foreground">
         <Clock class="size-3 shrink-0" />

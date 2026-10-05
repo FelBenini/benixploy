@@ -32,6 +32,28 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
   const server = await app.repo.servers.get(locals.orgId, existing.serverId);
 
+  let traffic: {
+    color: string | null;
+    lastFlipAt: string | null;
+    healthy: boolean;
+  } | null = null;
+
+  if (gitSource && existing.kind === "stateless") {
+    const events = await app.repo.nodeEvents.getRecentEvents(
+      existing.serverId,
+      100,
+    );
+    const reload = events.find(
+      (e) =>
+        e.appId === existing.id && e.eventType.startsWith("traefik_reload"),
+    );
+    traffic = {
+      color: gitSource.activeColor,
+      lastFlipAt: reload?.receivedAt ?? null,
+      healthy: !reload || reload.eventType === "traefik_reload_ok",
+    };
+  }
+
   let commitUrl: string | null = null;
   if (gitSource?.connectionId && gitSource.shaDeployed) {
     const connection = await app.repo.gitConnections.findGitConnectionById(
@@ -71,6 +93,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
           lastPushAt: gitSource.lastPushAt,
         }
       : null,
+    traffic,
     currentDeployment: deployment
       ? {
           id: deployment.id,

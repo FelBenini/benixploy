@@ -40,6 +40,16 @@ export interface NodeCommandClient {
     commit?: string,
     cloneAuth?: CloneAuth,
   ): Promise<void>;
+  /**
+   * Atomically write the Traefik file-provider dynamic config for an app to
+   * `/opt/benisploy/traefik/dynamic/<app-id>.yml` (SFTP to `.tmp`, then
+   * rename). Traefik's file watcher reloads within milliseconds — no restart.
+   */
+  writeTraefikDynamic(
+    serverId: string,
+    appId: string,
+    yaml: string,
+  ): Promise<void>;
   restart(serverId: string, appId: string): Promise<void>;
   stop(serverId: string, appId: string): Promise<void>;
   remove(serverId: string, appId: string, volumes: boolean): Promise<void>;
