@@ -7,3 +7,9 @@ export type {
   NormalizedPush,
   CloneAuth,
 } from "./git-provider-client";
+export type {
+  JobQueue,
+  DeployJob,
+  DeployJobHandler,
+  EnqueueResult,
+} from "./job-queue";

@@ -24,6 +24,8 @@ import type { CloneAuth } from "$lib/server/ports/git-provider-client";
 import { ENCRYPTION_KEY, REDIS_URL } from "$app/env/private";
 import { dev } from "$app/environment";
 import { createOAuthStateStore } from "$lib/server/adapters/oauth-state";
+import { RedisJobQueue } from "$lib/server/adapters/queue/redis-job-queue";
+import { createStubDeployJobHandler } from "$lib/server/usecase/deploy-job-handler";
 import { Redis } from "ioredis";
 
 const hasEncryption = ENCRYPTION_KEY != null && ENCRYPTION_KEY.length > 0;
@@ -48,6 +50,16 @@ redis?.on("error", (err) => {
 });
 
 const oauthStates = createOAuthStateStore(redis, dev);
+
+const jobQueue = redis ? new RedisJobQueue(redis) : null;
+jobQueue?.start(createStubDeployJobHandler(repo.pushEvents));
+if (jobQueue) {
+  const stopQueue = () => {
+    void jobQueue.stop();
+  };
+  process.on("SIGTERM", stopQueue);
+  process.on("SIGINT", stopQueue);
+}
 
 const nodeSshClient = new SshNodeCommandClient(async (serverId: string) => {
   const server = await repo.servers.getByIdAny(serverId);
@@ -157,6 +169,7 @@ export const app = {
   redis,
   repo,
   oauthStates,
+  jobQueue,
   nodeSshClient,
   adapters: {
     sshNodeCommand: nodeSshClient,
