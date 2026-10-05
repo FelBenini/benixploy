@@ -26,6 +26,7 @@ import { dev } from "$app/environment";
 import { createOAuthStateStore } from "$lib/server/adapters/oauth-state";
 import { RedisJobQueue } from "$lib/server/adapters/queue/redis-job-queue";
 import { createStubDeployJobHandler } from "$lib/server/usecase/deploy-job-handler";
+import { createHandleWebhook } from "$lib/server/usecase/handle-webhook";
 import { Redis } from "ioredis";
 
 const hasEncryption = ENCRYPTION_KEY != null && ENCRYPTION_KEY.length > 0;
@@ -180,6 +181,7 @@ export const app = {
     deployApp: createDeployApp(repo, nodeSshClient, { resolveCloneAuth }),
     listApps: createListApps(repo),
     getApp: createGetApp(repo),
+    handleWebhook: createHandleWebhook(repo, jobQueue, getGitProvider),
   },
   auth: {
     createSession: (executor: DbExecutor, userId: string) =>
