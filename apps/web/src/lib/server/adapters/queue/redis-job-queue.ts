@@ -55,7 +55,7 @@ export class RedisJobQueue implements JobQueue {
 
   private async run(handler: DeployJobHandler): Promise<void> {
     while (!this.stopping) {
-      let popped: [string, string] | null = null;
+      let popped: [string, string] | null;
       try {
         popped = await this.consumer.brpop(QUEUE_KEY, BLOCK_SECONDS);
       } catch (err) {
@@ -71,7 +71,7 @@ export class RedisJobQueue implements JobQueue {
       } catch (err) {
         console.error(`deploy job failed for app ${job.appId}:`, err);
       } finally {
-        await this.redis.del(inflightKey(job.appId)).catch(() => {});
+        await this.redis.del(inflightKey(job.appId)).catch(() => { });
       }
     }
     this.loop = null;
