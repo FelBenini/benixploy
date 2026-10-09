@@ -71,7 +71,7 @@ export class RedisJobQueue implements JobQueue {
       } catch (err) {
         console.error(`deploy job failed for app ${job.appId}:`, err);
       } finally {
-        await this.redis.del(inflightKey(job.appId)).catch(() => { });
+        await this.redis.del(inflightKey(job.appId)).catch(() => {});
       }
     }
     this.loop = null;
