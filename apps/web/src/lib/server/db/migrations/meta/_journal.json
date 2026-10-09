@@ -43,6 +43,13 @@
       "when": 1790284656439,
       "tag": "0005_aspiring_cobalt_man",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791239407296,
+      "tag": "0006_lean_ultron",
+      "breakpoints": true
     }
   ]
 }

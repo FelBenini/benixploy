@@ -9,12 +9,16 @@ export const ACTIVE_ORG_COOKIE = "active_org_id";
 // pushes telemetry here without an Origin header.
 const NO_CSRF_PATHS = new Set(["/api/telemetry/ingest"]);
 
+// Git webhooks are machine-to-machine and carry no Origin header.
+const NO_CSRF_PREFIXES = ["/api/git/events/"];
+
 export const handle: Handle = async ({ event, resolve }) => {
   // CSRF protection
   if (
     event.request.method !== "GET" &&
     event.request.method !== "HEAD" &&
-    !NO_CSRF_PATHS.has(event.url.pathname)
+    !NO_CSRF_PATHS.has(event.url.pathname) &&
+    !NO_CSRF_PREFIXES.some((prefix) => event.url.pathname.startsWith(prefix))
   ) {
     const origin = event.request.headers.get("Origin");
     const host = event.request.headers.get("Host");

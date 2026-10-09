@@ -39,6 +39,12 @@ import type {
 import type { GitConnectionRepository } from "../ports/repository";
 import type { GitSourceRepository } from "../ports/repository";
 import type { GitSource, UpsertGitSourceInput } from "../domain/git-source";
+import type { PushEventRepository } from "../ports/repository";
+import type {
+  PushEvent,
+  PushEventStatus,
+  CreatePushEventInput,
+} from "../domain/push-event";
 
 export const TEST_ORG_ID = "org-test";
 export const TEST_USER_ID = "user-test";
@@ -726,6 +732,68 @@ export class InMemoryGitSourceRepo implements GitSourceRepository {
   }
 }
 
+export class InMemoryPushEventRepo implements PushEventRepository {
+  data = new Map<string, PushEvent>();
+
+  async create(input: CreatePushEventInput): Promise<PushEvent> {
+    const event: PushEvent = {
+      id: crypto.randomUUID(),
+      appId: input.appId,
+      connectionId: input.connectionId,
+      provider: input.provider,
+      repoSlug: input.repoSlug,
+      branch: input.branch,
+      ref: input.ref,
+      sha: input.sha,
+      message: input.message,
+      deliveryId: input.deliveryId,
+      status: input.status,
+      deployJobId: input.deployJobId,
+      receivedAt: new Date().toISOString(),
+    };
+    this.data.set(event.id, event);
+    return event;
+  }
+
+  async findByAppId(appId: string, limit = 10): Promise<PushEvent[]> {
+    return Array.from(this.data.values())
+      .filter((e) => e.appId === appId)
+      .sort((a, b) => b.receivedAt.localeCompare(a.receivedAt))
+      .slice(0, limit);
+  }
+
+  async findByDeliveryId(deliveryId: string): Promise<PushEvent | null> {
+    for (const event of this.data.values()) {
+      if (event.deliveryId === deliveryId) return event;
+    }
+    return null;
+  }
+
+  async findInProgressByAppId(appId: string): Promise<PushEvent | null> {
+    for (const event of this.data.values()) {
+      if (
+        event.appId === appId &&
+        (event.status === "queued" || event.status === "deploying")
+      ) {
+        return event;
+      }
+    }
+    return null;
+  }
+
+  async updateStatus(
+    id: string,
+    status: PushEventStatus,
+    deployJobId?: string | null,
+  ): Promise<void> {
+    const event = this.data.get(id);
+    if (event) {
+      event.status = status;
+      if (deployJobId !== undefined) event.deployJobId = deployJobId;
+    }
+  }
+}
+
 export class InMemoryRepository implements Repository {
   apps: InMemoryAppRepo;
   servers: InMemoryServerRepo;
@@ -740,6 +808,7 @@ export class InMemoryRepository implements Repository {
   registrationTokens: InMemoryRegistrationTokenRepo;
   gitConnections: InMemoryGitConnectionRepo;
   gitSources: InMemoryGitSourceRepo;
+  pushEvents: InMemoryPushEventRepo;
 
   constructor() {
     this.apps = new InMemoryAppRepo();
@@ -755,6 +824,7 @@ export class InMemoryRepository implements Repository {
     this.registrationTokens = new InMemoryRegistrationTokenRepo();
     this.gitConnections = new InMemoryGitConnectionRepo();
     this.gitSources = new InMemoryGitSourceRepo();
+    this.pushEvents = new InMemoryPushEventRepo();
   }
 }
 
