@@ -1,4 +1,4 @@
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNotNull, lt } from "drizzle-orm";
 import type { GitSourceRepository } from "../../ports/repository";
 import type {
   GitSource,
@@ -7,7 +7,7 @@ import type {
 } from "../../domain/git-source";
 import type { GitProvider } from "../../domain/git-connection";
 import type { DrizzleDB } from "./drizzle-repository";
-import { gitSources } from "../../db/schema";
+import { gitSources, apps } from "../../db/schema";
 
 function toDomain(row: typeof gitSources.$inferSelect): GitSource {
   return {
@@ -123,5 +123,25 @@ export class DrizzleGitSourceRepository implements GitSourceRepository {
       .update(gitSources)
       .set({ warmColor: null, warmExpiresAt: null, updatedAt: new Date() })
       .where(eq(gitSources.appId, appId));
+  }
+
+  async listExpiredWarm(
+    now: string,
+  ): Promise<Array<GitSource & { serverId: string }>> {
+    const rows = await this.db
+      .select({ source: gitSources, serverId: apps.serverId })
+      .from(gitSources)
+      .innerJoin(apps, eq(gitSources.appId, apps.id))
+      .where(
+        and(
+          isNotNull(gitSources.warmColor),
+          isNotNull(gitSources.warmExpiresAt),
+          lt(gitSources.warmExpiresAt, new Date(now)),
+        ),
+      );
+    return rows.map((row) => ({
+      ...toDomain(row.source),
+      serverId: row.serverId,
+    }));
   }
 }

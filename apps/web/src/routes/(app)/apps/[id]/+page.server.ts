@@ -79,6 +79,13 @@ export const load: PageServerLoad = async ({ locals, params }) => {
       serverName: server?.name ?? null,
       createdAt: existing.createdAt,
     },
+    rollback: {
+      instant:
+        existing.kind === "stateless" &&
+        gitSource?.warmColor != null &&
+        gitSource.warmExpiresAt != null &&
+        new Date(gitSource.warmExpiresAt).getTime() > Date.now(),
+    },
     gitSource: gitSource
       ? {
           provider: gitSource.provider,

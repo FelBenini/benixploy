@@ -7,6 +7,8 @@ import { encrypt, decrypt } from "$lib/server/adapters/encryption";
 import { InMemoryRateLimiter } from "$lib/server/adapters/rate-limit/in-memory";
 import { createRegisterServer } from "$lib/server/usecase/register-server";
 import { createDeployApp } from "$lib/server/usecase/deploy-app";
+import { createRollbackApp } from "$lib/server/usecase/rollback-app";
+import { createReapWarmColors } from "$lib/server/usecase/reap-warm-colors";
 import { createListApps } from "$lib/server/usecase/list-apps";
 import { createGetApp } from "$lib/server/usecase/get-app";
 import { createProvisionServer } from "$lib/server/usecase/provision-server";
@@ -165,6 +167,21 @@ const retentionInterval = setInterval(async () => {
 }, 3600_000);
 (retentionInterval as { unref?: () => void }).unref?.();
 
+const reapWarmColors = createReapWarmColors(repo, nodeSshClient);
+
+// Warm-color reaper: stop and forget drained colors past their window
+const warmReapInterval = setInterval(
+  async () => {
+    try {
+      await reapWarmColors();
+    } catch (err) {
+      console.error("warm-color reap sweep failed:", err);
+    }
+  },
+  5 * 60 * 1000,
+);
+(warmReapInterval as { unref?: () => void }).unref?.();
+
 export const app = {
   db,
   redis,
@@ -179,6 +196,7 @@ export const app = {
     registerServer: createRegisterServer(repo),
     provisionServer: createProvisionServer(repo),
     deployApp: createDeployApp(repo, nodeSshClient, { resolveCloneAuth }),
+    rollbackApp: createRollbackApp(repo, nodeSshClient),
     listApps: createListApps(repo),
     getApp: createGetApp(repo),
     handleWebhook: createHandleWebhook(repo, jobQueue, getGitProvider),

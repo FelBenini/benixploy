@@ -228,6 +228,27 @@ export interface GitSourceRepository {
   setActiveColor(appId: string, color: string): Promise<void>;
   setWarmColor(appId: string, color: string, expiresAt: string): Promise<void>;
   clearWarmColor(appId: string): Promise<void>;
+  /**
+   * Warm colors past their retention window, joined with the owning app's
+   * server so the reaper can stop them without a second lookup.
+   */
+  listExpiredWarm(
+    now: string,
+  ): Promise<Array<GitSource & { serverId: string }>>;
+}
+
+export interface AuditLogRecord {
+  orgId: string;
+  actorId?: string | null;
+  action: string;
+  resource: string;
+  resourceId?: string | null;
+  details?: Record<string, unknown> | null;
+  reasoning?: string | null;
+}
+
+export interface AuditLogRepository {
+  record(input: AuditLogRecord): Promise<void>;
 }
 
 export interface PushEventRepository {
@@ -257,4 +278,5 @@ export interface Repository {
   gitConnections: GitConnectionRepository;
   gitSources: GitSourceRepository;
   pushEvents: PushEventRepository;
+  auditLogs: AuditLogRepository;
 }
