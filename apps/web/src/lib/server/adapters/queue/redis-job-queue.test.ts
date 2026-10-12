@@ -51,7 +51,7 @@ beforeEach(async () => {
 
 describe("RedisJobQueue", () => {
   it("drops a second enqueue while an app is in flight", async () => {
-    const queue = new RedisJobQueue(redis, 60);
+    const queue = new RedisJobQueue(redis);
 
     expect(await queue.enqueue(job("app-1"))).toEqual({ queued: true });
     expect(await queue.enqueue(job("app-1"))).toEqual({
@@ -62,8 +62,8 @@ describe("RedisJobQueue", () => {
     await queue.stop();
   });
 
-  it("drains queued jobs in order and releases the in-flight lock", async () => {
-    const queue = new RedisJobQueue(redis, 60);
+  it("drains queued jobs in order and frees the app for re-enqueue", async () => {
+    const queue = new RedisJobQueue(redis);
     const seen: string[] = [];
     queue.start(async (j) => {
       seen.push(j.appId);
@@ -74,11 +74,20 @@ describe("RedisJobQueue", () => {
 
     await waitFor(() => seen.length === 2);
     expect(seen).toEqual(["app-a", "app-b"]);
-    await waitFor(
-      async () => (await redis.get("deploy:inflight:app-a")) === null,
-    );
 
-    expect(await queue.enqueue(job("app-a"))).toEqual({ queued: true });
+    // The poll that turns queued:true is the release assertion.
+    await waitFor(async () => (await queue.enqueue(job("app-a"))).queued);
+    await queue.stop();
+  });
+
+  it("releases the app after a failed handler", async () => {
+    const queue = new RedisJobQueue(redis);
+    queue.start(async () => {
+      throw new Error("deploy exploded");
+    });
+
+    await queue.enqueue(job("app-a"));
+    await waitFor(async () => (await queue.enqueue(job("app-a"))).queued);
     await queue.stop();
   });
 });

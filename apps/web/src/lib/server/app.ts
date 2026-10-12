@@ -27,6 +27,7 @@ import { ENCRYPTION_KEY, REDIS_URL } from "$app/env/private";
 import { dev } from "$app/environment";
 import { createOAuthStateStore } from "$lib/server/adapters/oauth-state";
 import { RedisJobQueue } from "$lib/server/adapters/queue/redis-job-queue";
+import { WarmReapScheduler } from "$lib/server/adapters/queue/warm-reap-scheduler";
 import { createStubDeployJobHandler } from "$lib/server/usecase/deploy-job-handler";
 import { createHandleWebhook } from "$lib/server/usecase/handle-webhook";
 import { Redis } from "ioredis";
@@ -68,6 +69,24 @@ const nodeSshClient = new SshNodeCommandClient(async (serverId: string) => {
   const server = await repo.servers.getByIdAny(serverId);
   return server ?? null;
 });
+
+const reapWarmColors = createReapWarmColors(repo, nodeSshClient);
+
+// Warm-color reaper: a repeatable BullMQ job sweeps drained colors past their
+// window every 5 minutes. With multiple replicas, BullMQ runs each tick once.
+const warmReapScheduler = redis
+  ? new WarmReapScheduler(redis, reapWarmColors)
+  : null;
+warmReapScheduler
+  ?.start()
+  .catch((err) => console.error("warm-reap scheduler start failed:", err));
+if (warmReapScheduler) {
+  const stopScheduler = () => {
+    void warmReapScheduler.stop();
+  };
+  process.on("SIGTERM", stopScheduler);
+  process.on("SIGINT", stopScheduler);
+}
 
 // Derived from a clone URL, e.g. "https://github.com/octocat/hello.git"
 // -> "octocat/hello".
@@ -166,21 +185,6 @@ const retentionInterval = setInterval(async () => {
   }
 }, 3600_000);
 (retentionInterval as { unref?: () => void }).unref?.();
-
-const reapWarmColors = createReapWarmColors(repo, nodeSshClient);
-
-// Warm-color reaper: stop and forget drained colors past their window
-const warmReapInterval = setInterval(
-  async () => {
-    try {
-      await reapWarmColors();
-    } catch (err) {
-      console.error("warm-color reap sweep failed:", err);
-    }
-  },
-  5 * 60 * 1000,
-);
-(warmReapInterval as { unref?: () => void }).unref?.();
 
 export const app = {
   db,
