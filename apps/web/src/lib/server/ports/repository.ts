@@ -263,6 +263,13 @@ export interface PushEventRepository {
   ): Promise<void>;
 }
 
+export interface EnvVarRepository {
+  /**
+   * Decrypted environment variables for an app, keyed by variable name.
+   */
+  listByApp(orgId: string, appId: string): Promise<Record<string, string>>;
+}
+
 export interface Repository {
   servers: ServerRepository;
   apps: AppRepository;
@@ -279,4 +286,5 @@ export interface Repository {
   gitSources: GitSourceRepository;
   pushEvents: PushEventRepository;
   auditLogs: AuditLogRepository;
+  envVars: EnvVarRepository;
 }

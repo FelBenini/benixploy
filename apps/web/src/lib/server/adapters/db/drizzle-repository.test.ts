@@ -216,4 +216,61 @@ describe("DrizzleRepository integration", () => {
     expect(alphaServers).toHaveLength(1);
     expect(betaServers).toHaveLength(0);
   });
+
+  it("envVars.listByApp returns decrypted vars scoped to app and org", async () => {
+    const ORG = "env-var-org";
+    const OTHER_ORG = "env-var-other-org";
+    await seedOrg(ORG);
+    await seedOrg(OTHER_ORG);
+
+    const encrypt = (v: string) => `enc(${v})`;
+    const decrypt = (v: string) => v.replace(/^enc\(/, "").replace(/\)$/, "");
+    const repo = new DrizzleRepository(db, encrypt, decrypt);
+    const registerServer = createRegisterServer(repo);
+    const deployApp = createDeployApp(repo, new FakeNodeCommandClient());
+
+    const server = await registerServer(ORG, {
+      name: "env-var-server",
+      description: "",
+      address: "10.0.0.5",
+      sshPort: 22,
+      sshUser: "root",
+      cpuCores: 1,
+      memoryBytes: 1_000_000_000,
+      diskBytes: 10_000_000_000,
+    });
+    const { app } = await deployApp(
+      ORG,
+      validAppSpec({ name: "env-var-app" }),
+      server.id,
+    );
+
+    await db.insert(schema.envVars).values([
+      {
+        id: "ev-1",
+        orgId: ORG,
+        appId: app.id,
+        key: "DATABASE_URL",
+        encryptedValue: encrypt("postgres://secret"),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: "ev-2",
+        orgId: ORG,
+        appId: app.id,
+        key: "API_KEY",
+        encryptedValue: encrypt("hunter2"),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]);
+
+    expect(await repo.envVars.listByApp(ORG, app.id)).toEqual({
+      DATABASE_URL: "postgres://secret",
+      API_KEY: "hunter2",
+    });
+    expect(await repo.envVars.listByApp(OTHER_ORG, app.id)).toEqual({});
+    expect(await repo.envVars.listByApp(ORG, "unknown-app")).toEqual({});
+  });
 });

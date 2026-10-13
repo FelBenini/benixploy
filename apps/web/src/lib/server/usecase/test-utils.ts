@@ -19,6 +19,7 @@ import type {
   RegistrationTokenRepository,
   AuditLogRepository,
   AuditLogRecord,
+  EnvVarRepository,
 } from "../ports/repository";
 import type { Session } from "../domain/session";
 import type { Org } from "../domain/org";
@@ -767,6 +768,17 @@ export class InMemoryAuditLogRepo implements AuditLogRepository {
   }
 }
 
+export class InMemoryEnvVarRepo implements EnvVarRepository {
+  data = new Map<string, Record<string, string>>();
+
+  async listByApp(
+    _orgId: string,
+    appId: string,
+  ): Promise<Record<string, string>> {
+    return { ...(this.data.get(appId) ?? {}) };
+  }
+}
+
 export class InMemoryPushEventRepo implements PushEventRepository {
   data = new Map<string, PushEvent>();
 
@@ -845,6 +857,7 @@ export class InMemoryRepository implements Repository {
   gitSources: InMemoryGitSourceRepo;
   pushEvents: InMemoryPushEventRepo;
   auditLogs: InMemoryAuditLogRepo;
+  envVars: InMemoryEnvVarRepo;
 
   constructor() {
     this.apps = new InMemoryAppRepo();
@@ -864,6 +877,7 @@ export class InMemoryRepository implements Repository {
     );
     this.pushEvents = new InMemoryPushEventRepo();
     this.auditLogs = new InMemoryAuditLogRepo();
+    this.envVars = new InMemoryEnvVarRepo();
   }
 }
 
