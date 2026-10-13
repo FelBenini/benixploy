@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import { GenericContainer } from "testcontainers";
 import type { StartedTestContainer } from "testcontainers";
 import { Redis } from "ioredis";
-import { WarmReapScheduler } from "./warm-reap-scheduler";
+import { ScheduledJob } from "./scheduled-job";
 
 let container: StartedTestContainer;
 let redis: Redis;
@@ -36,39 +36,58 @@ beforeEach(async () => {
   await redis.flushdb();
 });
 
-describe("WarmReapScheduler", () => {
-  it("fires the reap handler on the scheduled interval", async () => {
+describe("ScheduledJob", () => {
+  it("fires the handler on the scheduled interval", async () => {
     let calls = 0;
-    const scheduler = new WarmReapScheduler(
+    const job = new ScheduledJob(
+      "test-job",
       redis,
       async () => {
         calls++;
-        return 0;
       },
       150,
     );
 
-    await scheduler.start();
+    await job.start();
     await waitFor(() => calls >= 1, 5_000);
-    await scheduler.stop();
+    await job.stop();
 
     expect(calls).toBeGreaterThanOrEqual(1);
   });
 
   it("keeps firing across ticks", async () => {
     let calls = 0;
-    const scheduler = new WarmReapScheduler(
+    const job = new ScheduledJob(
+      "test-job-repeat",
       redis,
       async () => {
         calls++;
-        return 0;
       },
       75,
     );
 
-    await scheduler.start();
+    await job.start();
     await waitFor(() => calls >= 2, 5_000);
-    await scheduler.stop();
+    await job.stop();
+
+    expect(calls).toBeGreaterThanOrEqual(2);
+  });
+
+  it("keeps ticking after a handler failure", async () => {
+    let calls = 0;
+    const job = new ScheduledJob(
+      "test-job-failure",
+      redis,
+      async () => {
+        calls++;
+        throw new Error("sweep exploded");
+      },
+      75,
+    );
+
+    await job.start();
+    await waitFor(() => calls >= 2, 5_000);
+    await job.stop();
 
     expect(calls).toBeGreaterThanOrEqual(2);
   });

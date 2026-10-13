@@ -2,45 +2,43 @@ import type { Redis } from "ioredis";
 import { Queue, Worker } from "bullmq";
 import { bullConnection } from "./redis-job-queue";
 
-const REAP_INTERVAL_MS = 5 * 60 * 1000;
-const QUEUE_NAME = "warm-reap";
-
 /**
- * Scheduled warm-color sweep. A repeatable BullMQ job fires the reap handler
- * every `intervalMs`; with multiple app replicas, BullMQ guarantees only one
- * worker processes each tick, so warm colors are never reaped twice.
+ * A recurring background job on a BullMQ repeatable scheduler. With multiple
+ * app replicas, BullMQ guarantees only one worker processes each tick, so
+ * the handler never runs twice per interval.
  */
-export class WarmReapScheduler {
+export class ScheduledJob {
   private queue: Queue | null = null;
   private worker: Worker | null = null;
 
   constructor(
+    readonly name: string,
     private readonly redis: Redis,
-    private readonly reap: () => Promise<number>,
-    private readonly intervalMs = REAP_INTERVAL_MS,
+    private readonly run: () => Promise<void>,
+    private readonly intervalMs: number,
   ) {}
 
   async start(): Promise<void> {
     if (this.worker) return;
-    this.queue = new Queue(QUEUE_NAME, {
+    this.queue = new Queue(this.name, {
       connection: bullConnection(this.redis),
     });
     this.worker = new Worker(
-      QUEUE_NAME,
+      this.name,
       async () => {
         try {
-          await this.reap();
+          await this.run();
         } catch (err) {
-          // The next tick retries; a sweep is idempotent.
-          console.error("warm-reap job failed:", err);
+          // The next tick retries; scheduled jobs are idempotent sweeps.
+          console.error(`${this.name} job failed:`, err);
         }
       },
       { connection: bullConnection(this.redis) },
     );
     this.worker.on("error", (err) => {
-      console.error("warm-reap worker error:", err.message);
+      console.error(`${this.name} worker error:`, err.message);
     });
-    await this.queue.upsertJobScheduler("warm-reap", {
+    await this.queue.upsertJobScheduler(this.name, {
       every: this.intervalMs,
     });
   }
