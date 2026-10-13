@@ -744,6 +744,19 @@ export class InMemoryGitSourceRepo implements GitSourceRepository {
     }
   }
 
+  async markDeployed(
+    appId: string,
+    sha: string,
+    deployedAt: string,
+  ): Promise<void> {
+    const source = await this.findByApp(appId);
+    if (source) {
+      source.shaDeployed = sha;
+      source.lastPushAt = deployedAt;
+      source.updatedAt = new Date().toISOString();
+    }
+  }
+
   async listExpiredWarm(
     now: string,
   ): Promise<Array<GitSource & { serverId: string }>> {

@@ -10,6 +10,7 @@ let redis: Redis;
 
 function job(appId: string): DeployJob {
   return {
+    orgId: "org-1",
     appId,
     pushEventId: `pe-${appId}`,
     sha: "abc123",

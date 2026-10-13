@@ -28,7 +28,7 @@ import { dev } from "$app/environment";
 import { createOAuthStateStore } from "$lib/server/adapters/oauth-state";
 import { RedisJobQueue } from "$lib/server/adapters/queue/redis-job-queue";
 import { ScheduledJob } from "$lib/server/adapters/queue/scheduled-job";
-import { createStubDeployJobHandler } from "$lib/server/usecase/deploy-job-handler";
+import { createDeployJobHandler } from "$lib/server/usecase/deploy-job-handler";
 import { createHandleWebhook } from "$lib/server/usecase/handle-webhook";
 import { Redis } from "ioredis";
 
@@ -55,8 +55,36 @@ redis?.on("error", (err) => {
 
 const oauthStates = createOAuthStateStore(redis, dev);
 
+const nodeSshClient = new SshNodeCommandClient(async (serverId: string) => {
+  const server = await repo.servers.getByIdAny(serverId);
+  return server ?? null;
+});
+
+// Clone auth for push deploys: the job carries the connection, so no
+// host-matching is needed (unlike manual deploys resolving from a build URL).
+async function resolvePushCloneAuth(
+  orgId: string,
+  connectionId: string | null,
+  repoSlug: string,
+): Promise<CloneAuth | undefined> {
+  if (!connectionId) return undefined;
+  const connection = await repo.gitConnections.findGitConnection(
+    orgId,
+    connectionId,
+  );
+  if (!connection) return undefined;
+  return getGitProvider(connection.provider).resolveCloneAuth(
+    connection,
+    repoSlug,
+  );
+}
+
 const jobQueue = redis ? new RedisJobQueue(redis) : null;
-jobQueue?.start(createStubDeployJobHandler(repo.pushEvents));
+jobQueue?.start(
+  createDeployJobHandler(repo, nodeSshClient, {
+    resolveCloneAuth: resolvePushCloneAuth,
+  }),
+);
 if (jobQueue) {
   const stopQueue = () => {
     void jobQueue.stop();
@@ -64,11 +92,6 @@ if (jobQueue) {
   process.on("SIGTERM", stopQueue);
   process.on("SIGINT", stopQueue);
 }
-
-const nodeSshClient = new SshNodeCommandClient(async (serverId: string) => {
-  const server = await repo.servers.getByIdAny(serverId);
-  return server ?? null;
-});
 
 const reapWarmColors = createReapWarmColors(repo, nodeSshClient);
 

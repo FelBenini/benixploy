@@ -16,6 +16,7 @@ function toDomain(
     status: depRow.status as Deployment["status"],
     appSpec: depRow.appSpec as unknown as AppSpec,
     composeYaml: depRow.composeYaml ?? null,
+    color: depRow.color as Deployment["color"],
     version: depRow.version,
     createdAt: depRow.createdAt.toISOString(),
     updatedAt: depRow.updatedAt.toISOString(),
@@ -35,6 +36,7 @@ export class DrizzleDeploymentRepository implements DeploymentRepository {
         status: data.status,
         appSpec: data.appSpec as Record<string, unknown>,
         composeYaml: data.composeYaml ?? null,
+        color: data.color ?? null,
         createdAt: new Date(data.createdAt),
         updatedAt: new Date(data.updatedAt),
       })

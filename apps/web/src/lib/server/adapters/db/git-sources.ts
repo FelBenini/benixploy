@@ -125,6 +125,21 @@ export class DrizzleGitSourceRepository implements GitSourceRepository {
       .where(eq(gitSources.appId, appId));
   }
 
+  async markDeployed(
+    appId: string,
+    sha: string,
+    deployedAt: string,
+  ): Promise<void> {
+    await this.db
+      .update(gitSources)
+      .set({
+        shaDeployed: sha,
+        lastPushAt: new Date(deployedAt),
+        updatedAt: new Date(),
+      })
+      .where(eq(gitSources.appId, appId));
+  }
+
   async listExpiredWarm(
     now: string,
   ): Promise<Array<GitSource & { serverId: string }>> {

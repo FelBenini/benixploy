@@ -52,7 +52,7 @@ function makeSandbox(): Sandbox {
   mkdirSync(binDir, { recursive: true });
   writeFileSync(
     path.join(appDir, "docker-compose.yml"),
-    "services:\n  app-1:\n    build:\n      context: ./build-context\n",
+    "services:\n  test-app-blue:\n    build:\n      context: ./build-context\n  test-app-green:\n    build:\n      context: ./build-context\n",
   );
 
   const script = path.join(sandboxDir, "exec-command.sh");
@@ -91,6 +91,9 @@ exit 0
     stubDocker,
     `#!/bin/sh
 echo "ARGS:$*" >> "${dockerLogPath}"
+case "$*" in
+  *"config --services"*) printf 'test-app-blue\\ntest-app-green\\n' ;;
+esac
 exit 0
 `,
   );
@@ -281,31 +284,32 @@ exit 128
   });
 
   describe("color actions", () => {
-    it("deploy-color runs docker compose up -d for the given color", () => {
+    it("deploy-color discovers the color service and brings it up", () => {
       const sb = makeSandbox();
       const res = sb.run("deploy-color app-1 blue\n", true);
       expect(res.exitCode).toBe(0);
       expect(res.stdout).toContain('"action":"deploy-color"');
       expect(sb.dockerLog()).toContain("ARGS:compose -f");
-      expect(sb.dockerLog()).toContain("up -d app-1-blue");
+      expect(sb.dockerLog()).toContain("config --services");
+      expect(sb.dockerLog()).toContain("up -d test-app-blue");
     });
 
-    it("stop-color runs docker compose stop for the given color", () => {
+    it("stop-color discovers the color service and stops it", () => {
       const sb = makeSandbox();
       const res = sb.run("stop-color app-1 green\n", true);
       expect(res.exitCode).toBe(0);
       expect(res.stdout).toContain('"action":"stop-color"');
       expect(sb.dockerLog()).toContain("ARGS:compose -f");
-      expect(sb.dockerLog()).toContain("stop app-1-green");
+      expect(sb.dockerLog()).toContain("stop test-app-green");
     });
 
-    it("color-status runs docker compose ps for the given color", () => {
+    it("color-status discovers the color service and lists it", () => {
       const sb = makeSandbox();
       const res = sb.run("color-status app-1 blue\n", true);
       expect(res.exitCode).toBe(0);
       expect(res.stdout).toContain('"action":"color-status"');
       expect(sb.dockerLog()).toContain("ARGS:compose -f");
-      expect(sb.dockerLog()).toContain("ps --format json app-1-blue");
+      expect(sb.dockerLog()).toContain("ps --format json test-app-blue");
     });
 
     it("rejects invalid colors", () => {

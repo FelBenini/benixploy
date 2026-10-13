@@ -8,7 +8,11 @@ export interface NodeEvent {
     | "unhealthy"
     | "restart_loop"
     | "traefik_reload_ok"
-    | "traefik_reload_failed";
+    | "traefik_reload_failed"
+    | "deploy_started"
+    | "build_failed"
+    | "deploy_failed"
+    | "deploy_done";
   payload: Record<string, unknown>;
   receivedAt: string;
 }

@@ -98,6 +98,15 @@ validate_color() {
     esac
 }
 
+# Compose services are named "<app-name>-<color>", which the control plane
+# knows but the node does not — discover the service by its color suffix.
+service_for_color() {
+    compose="$1"
+    color="$2"
+    docker compose -f "$compose" config --services 2>/dev/null |
+        grep -E -- "-${color}$" | head -n 1
+}
+
 # Replace any known secret with [REDACTED] before relaying output to the
 # control plane. Secrets are provider-issued alphanumeric tokens, so awk
 # gsub is regex-safe for them.
@@ -317,7 +326,11 @@ do_deploy_color() {
     check_app_exists "$app_id"
 
     compose="$(compose_file "$app_id")"
-    docker compose -f "$compose" up -d "${app_id}-${color}" >&2
+    service="$(service_for_color "$compose" "$color")"
+    if [ -z "$service" ]; then
+        die "no compose service found for color: $color" 5
+    fi
+    docker compose -f "$compose" up -d "$service" >&2
 
     printf '{"action":"deploy-color","app_id":"%s","color":"%s","status":"ok"}\n' "$app_id" "$color"
 }
@@ -329,7 +342,11 @@ do_stop_color() {
     check_app_exists "$app_id"
 
     compose="$(compose_file "$app_id")"
-    docker compose -f "$compose" stop "${app_id}-${color}" >&2
+    service="$(service_for_color "$compose" "$color")"
+    if [ -z "$service" ]; then
+        die "no compose service found for color: $color" 5
+    fi
+    docker compose -f "$compose" stop "$service" >&2
 
     printf '{"action":"stop-color","app_id":"%s","color":"%s","status":"ok"}\n' "$app_id" "$color"
 }
@@ -341,8 +358,12 @@ do_color_status() {
     check_app_exists "$app_id"
 
     compose="$(compose_file "$app_id")"
+    service="$(service_for_color "$compose" "$color")"
+    if [ -z "$service" ]; then
+        die "no compose service found for color: $color" 5
+    fi
     printf '{"action":"color-status","app_id":"%s","color":"%s","containers":' "$app_id" "$color"
-    docker compose -f "$compose" ps --format json "${app_id}-${color}" 2>/dev/null || printf '[]'
+    docker compose -f "$compose" ps --format json "$service" 2>/dev/null || printf '[]'
     printf '}\n'
 }
 

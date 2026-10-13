@@ -6,6 +6,7 @@ import type { AppSpec } from "../domain/app-spec";
 import type { Deployment } from "../domain/deployment";
 import { generateComposeYaml, isHttpUrl } from "../adapters/compose-gen";
 import { WARM_RETENTION_MS } from "./rollback-app";
+import { waitForHealthy } from "./deploy-helpers";
 
 export interface DeployAppOutput {
   app: App;
@@ -27,27 +28,7 @@ export interface DeployAppDeps {
   verifyTimeoutMs?: number;
 }
 
-const VERIFY_POLL_INTERVAL_MS = 2_000;
 const VERIFY_TIMEOUT_MS = 60_000;
-
-async function waitForHealthy(
-  nodeClient: NodeCommandClient,
-  serverId: string,
-  appId: string,
-  color: "blue" | "green",
-  timeoutMs: number,
-): Promise<boolean> {
-  const start = Date.now();
-  while (Date.now() - start < timeoutMs) {
-    const states = await nodeClient.colorStatus(serverId, appId, color);
-    const healthy = states.some(
-      (s) => s.state === "running" && s.health === "healthy",
-    );
-    if (healthy) return true;
-    await new Promise((r) => setTimeout(r, VERIFY_POLL_INTERVAL_MS));
-  }
-  return false;
-}
 
 export function createDeployApp(
   repo: Repository,

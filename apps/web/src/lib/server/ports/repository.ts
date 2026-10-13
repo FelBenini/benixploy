@@ -229,6 +229,10 @@ export interface GitSourceRepository {
   setWarmColor(appId: string, color: string, expiresAt: string): Promise<void>;
   clearWarmColor(appId: string): Promise<void>;
   /**
+   * Record a successful push deploy: the deployed commit and push time.
+   */
+  markDeployed(appId: string, sha: string, deployedAt: string): Promise<void>;
+  /**
    * Warm colors past their retention window, joined with the owning app's
    * server so the reaper can stop them without a second lookup.
    */
