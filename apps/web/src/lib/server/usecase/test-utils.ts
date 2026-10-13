@@ -17,6 +17,8 @@ import type {
   OrgMembershipRepository,
   RegisteredNodeRepository,
   RegistrationTokenRepository,
+  AuditLogRepository,
+  AuditLogRecord,
 } from "../ports/repository";
 import type { Session } from "../domain/session";
 import type { Org } from "../domain/org";
@@ -209,6 +211,14 @@ export class InMemoryAppRepo implements AppRepository {
 
   async get(orgId: string, id: string): Promise<App | null> {
     return this.orgMap(orgId).get(id) ?? null;
+  }
+
+  findByIdAny(id: string): App | null {
+    for (const store of this.data.values()) {
+      const app = store.get(id);
+      if (app) return app;
+    }
+    return null;
   }
 
   async list(orgId: string): Promise<App[]> {
@@ -654,6 +664,8 @@ export class InMemoryGitConnectionRepo implements GitConnectionRepository {
 export class InMemoryGitSourceRepo implements GitSourceRepository {
   private data = new Map<string, GitSource>();
 
+  constructor(private appLookup?: (appId: string) => App | null) {}
+
   async findByApp(appId: string): Promise<GitSource | null> {
     for (const source of this.data.values()) {
       if (source.appId === appId) return source;
@@ -729,6 +741,29 @@ export class InMemoryGitSourceRepo implements GitSourceRepository {
       source.warmExpiresAt = null;
       source.updatedAt = new Date().toISOString();
     }
+  }
+
+  async listExpiredWarm(
+    now: string,
+  ): Promise<Array<GitSource & { serverId: string }>> {
+    const cutoff = new Date(now).getTime();
+    const expired: Array<GitSource & { serverId: string }> = [];
+    for (const source of this.data.values()) {
+      if (!source.warmColor || !source.warmExpiresAt) continue;
+      if (new Date(source.warmExpiresAt).getTime() >= cutoff) continue;
+      const app = this.appLookup?.(source.appId);
+      if (!app) continue;
+      expired.push({ ...source, serverId: app.serverId });
+    }
+    return expired;
+  }
+}
+
+export class InMemoryAuditLogRepo implements AuditLogRepository {
+  entries: AuditLogRecord[] = [];
+
+  async record(input: AuditLogRecord): Promise<void> {
+    this.entries.push(input);
   }
 }
 
@@ -809,6 +844,7 @@ export class InMemoryRepository implements Repository {
   gitConnections: InMemoryGitConnectionRepo;
   gitSources: InMemoryGitSourceRepo;
   pushEvents: InMemoryPushEventRepo;
+  auditLogs: InMemoryAuditLogRepo;
 
   constructor() {
     this.apps = new InMemoryAppRepo();
@@ -823,8 +859,11 @@ export class InMemoryRepository implements Repository {
     this.registeredNodes = new InMemoryRegisteredNodeRepo();
     this.registrationTokens = new InMemoryRegistrationTokenRepo();
     this.gitConnections = new InMemoryGitConnectionRepo();
-    this.gitSources = new InMemoryGitSourceRepo();
+    this.gitSources = new InMemoryGitSourceRepo((appId) =>
+      this.apps.findByIdAny(appId),
+    );
     this.pushEvents = new InMemoryPushEventRepo();
+    this.auditLogs = new InMemoryAuditLogRepo();
   }
 }
 

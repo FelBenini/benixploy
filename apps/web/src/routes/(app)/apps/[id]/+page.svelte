@@ -6,6 +6,7 @@
 
   let { data } = $props();
   const item = $derived(data.app);
+  const rollback = $derived(data.rollback);
   const gitSource = $derived(data.gitSource);
   const traffic = $derived(data.traffic);
   const currentDeployment = $derived(data.currentDeployment);
@@ -28,7 +29,7 @@
     </Tabs.List>
 
     <Tabs.Content value="general">
-      <GeneralTab {item} deployment={currentDeployment} />
+      <GeneralTab {item} {rollback} deployment={currentDeployment} />
     </Tabs.Content>
     <Tabs.Content value="source">
       <SourcePanel source={gitSource} {traffic} />

@@ -5,6 +5,7 @@ import type { App } from "../domain/app";
 import type { AppSpec } from "../domain/app-spec";
 import type { Deployment } from "../domain/deployment";
 import { generateComposeYaml, isHttpUrl } from "../adapters/compose-gen";
+import { WARM_RETENTION_MS } from "./rollback-app";
 
 export interface DeployAppOutput {
   app: App;
@@ -22,7 +23,6 @@ export interface DeployAppDeps {
   ) => Promise<CloneAuth | undefined>;
   /**
    * Health-check verification timeout for stateless blue/green deploys.
-   * ponytail: defaults to 60s; override in tests to avoid long waits.
    */
   verifyTimeoutMs?: number;
 }
@@ -197,6 +197,13 @@ export function createDeployApp(
         );
         if (oldColor) {
           await nodeClient.stopColor(serverId, createdApp.id, oldColor);
+          // The drained color stays warm so rollback can flip traffic back to it
+          // without rebuilding until the retention window expires.
+          await repo.gitSources.setWarmColor(
+            createdApp.id,
+            oldColor,
+            new Date(Date.now() + WARM_RETENTION_MS).toISOString(),
+          );
         }
       }
     } catch (err) {

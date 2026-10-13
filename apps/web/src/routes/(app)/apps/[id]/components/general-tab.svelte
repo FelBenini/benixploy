@@ -1,8 +1,11 @@
 <script lang="ts">
+  import { invalidateAll } from "$app/navigation";
   import { Badge } from "$lib/components/ui/badge";
   import * as Card from "$lib/components/ui/card";
+  import { Button } from "$lib/components/ui/button";
 
   interface AppInfo {
+    id: string;
     kind: string;
     status: string;
     activeColor: string | null;
@@ -18,12 +21,43 @@
 
   let {
     item,
+    rollback,
     deployment,
-  }: { item: AppInfo; deployment: DeploymentInfo | null } = $props();
+  }: {
+    item: AppInfo;
+    rollback: { instant: boolean };
+    deployment: DeploymentInfo | null;
+  } = $props();
+
+  let rollingBack = $state(false);
+  let rollbackError = $state<string | null>(null);
+  const busy = $derived(rollingBack || item.status === "deploying");
+
+  async function rollbackApp() {
+    rollingBack = true;
+    rollbackError = null;
+    try {
+      const res = await fetch(`/api/apps/${item.id}/rollback`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        throw new Error(body?.error ?? "Rollback failed");
+      }
+      await invalidateAll();
+    } catch (err) {
+      rollbackError = err instanceof Error ? err.message : "Rollback failed";
+    } finally {
+      rollingBack = false;
+    }
+  }
 
   function deploymentPillClass(status: string): string {
     switch (status) {
       case "healthy":
+      case "rolled_back":
         return "bg-green-950/50 border-green-800 text-green-400";
       case "executing":
       case "verifying":
@@ -79,5 +113,28 @@
         <span class="text-muted-foreground text-xs">None</span>
       {/if}
     </div>
+
+    {#if deployment}
+      <div class="flex items-center justify-between gap-2">
+        <span class="text-muted-foreground text-xs">Rollback</span>
+        <div class="flex flex-col items-end gap-1">
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={busy}
+            onclick={rollbackApp}
+          >
+            {rollingBack
+              ? "Rolling back…"
+              : rollback.instant
+                ? "Instant rollback (zero downtime)"
+                : "Rollback"}
+          </Button>
+          {#if rollbackError}
+            <span class="text-destructive text-xs">{rollbackError}</span>
+          {/if}
+        </div>
+      </div>
+    {/if}
   </Card.Content>
 </Card.Root>

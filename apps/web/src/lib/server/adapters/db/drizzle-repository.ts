@@ -16,6 +16,7 @@ import { DrizzleRegistrationTokenRepository } from "./registration-tokens";
 import { DrizzleGitConnectionRepository } from "./git-connections";
 import { DrizzleGitSourceRepository } from "./git-sources";
 import { DrizzlePushEventRepository } from "./push-events";
+import { DrizzleAuditLogRepository } from "./audit-logs";
 
 export type DrizzleDB = NodePgDatabase<typeof schema>;
 
@@ -34,6 +35,7 @@ export class DrizzleRepository implements Repository {
   gitConnections: DrizzleGitConnectionRepository;
   gitSources: DrizzleGitSourceRepository;
   pushEvents: DrizzlePushEventRepository;
+  auditLogs: DrizzleAuditLogRepository;
 
   constructor(
     db: DrizzleDB,
@@ -62,5 +64,6 @@ export class DrizzleRepository implements Repository {
     );
     this.gitSources = new DrizzleGitSourceRepository(db);
     this.pushEvents = new DrizzlePushEventRepository(db);
+    this.auditLogs = new DrizzleAuditLogRepository(db);
   }
 }
