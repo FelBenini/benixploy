@@ -221,7 +221,12 @@ describe("deployApp", () => {
       };
       const deployApp = createDeployApp(repo, nodeClient);
 
-      await deployApp(TEST_ORG_ID, gitSpec(), "server-git-2", async () => cloneAuth);
+      await deployApp(
+        TEST_ORG_ID,
+        gitSpec(),
+        "server-git-2",
+        async () => cloneAuth,
+      );
 
       expect(nodeClient.built[0].cloneAuth).toEqual(cloneAuth);
     });
