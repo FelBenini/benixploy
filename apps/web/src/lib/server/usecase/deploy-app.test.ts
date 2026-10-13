@@ -219,11 +219,9 @@ describe("deployApp", () => {
       const cloneAuth = {
         url: "https://x-access-token:ghs_secret@github.com/octocat/hello.git",
       };
-      const deployApp = createDeployApp(repo, nodeClient, {
-        resolveCloneAuth: async () => cloneAuth,
-      });
+      const deployApp = createDeployApp(repo, nodeClient);
 
-      await deployApp(TEST_ORG_ID, gitSpec(), "server-git-2");
+      await deployApp(TEST_ORG_ID, gitSpec(), "server-git-2", async () => cloneAuth);
 
       expect(nodeClient.built[0].cloneAuth).toEqual(cloneAuth);
     });

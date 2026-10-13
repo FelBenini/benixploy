@@ -15,14 +15,6 @@ export interface DeployAppOutput {
 
 export interface DeployAppDeps {
   /**
-   * Resolve clone credentials for a git-sourced app spec. Returns undefined
-   * for public repos or when no matching provider connection exists.
-   */
-  resolveCloneAuth?: (
-    orgId: string,
-    appSpec: AppSpec,
-  ) => Promise<CloneAuth | undefined>;
-  /**
    * Health-check verification timeout for stateless blue/green deploys.
    */
   verifyTimeoutMs?: number;
@@ -39,6 +31,10 @@ export function createDeployApp(
     orgId: string,
     appSpec: AppSpec,
     serverId: string,
+    resolveCloneAuth?: (
+      orgId: string,
+      appSpec: AppSpec,
+    ) => Promise<CloneAuth | undefined>,
   ): Promise<DeployAppOutput> {
     const now = new Date().toISOString();
 
@@ -77,8 +73,8 @@ export function createDeployApp(
     try {
       const buildContext = appSpec.buildContext;
       if (buildContext && isHttpUrl(buildContext)) {
-        const cloneAuth = deps.resolveCloneAuth
-          ? await deps.resolveCloneAuth(orgId, appSpec)
+        const cloneAuth = resolveCloneAuth
+          ? await resolveCloneAuth(orgId, appSpec)
           : undefined;
         await nodeClient.build(
           serverId,
