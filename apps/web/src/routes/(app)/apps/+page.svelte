@@ -3,6 +3,7 @@
   import { Button } from "$lib/components/ui/button";
   import Boxes from "@lucide/svelte/icons/boxes";
   import Plus from "@lucide/svelte/icons/plus";
+  import GitBranch from "@lucide/svelte/icons/git-branch";
   import AppCard from "./components/app-card.svelte";
 
   let { data } = $props();
@@ -27,6 +28,10 @@
       </p>
     </div>
     <div class="flex gap-2">
+      <Button variant="secondary" href={resolve("/apps/new-git")}>
+        <GitBranch data-icon="inline-start" />
+        New Git App
+      </Button>
       <Button href={resolve("/")}>
         <Plus data-icon="inline-start" />
         Deploy app

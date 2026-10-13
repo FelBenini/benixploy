@@ -19,8 +19,6 @@ import {
 } from "$lib/server/auth/session";
 import { hashPassword, verifyPassword } from "$lib/server/auth/password";
 import { getGitProvider } from "$lib/server/adapters/git";
-import { isHttpUrl } from "$lib/server/adapters/compose-gen";
-import type { AppSpec } from "$lib/server/domain/app-spec";
 import type { CloneAuth } from "$lib/server/ports/git-provider-client";
 
 import { ENCRYPTION_KEY, REDIS_URL } from "$app/env/private";
@@ -28,7 +26,7 @@ import { dev } from "$app/environment";
 import { createOAuthStateStore } from "$lib/server/adapters/oauth-state";
 import { RedisJobQueue } from "$lib/server/adapters/queue/redis-job-queue";
 import { ScheduledJob } from "$lib/server/adapters/queue/scheduled-job";
-import { createStubDeployJobHandler } from "$lib/server/usecase/deploy-job-handler";
+import { createDeployJobHandler } from "$lib/server/usecase/deploy-job-handler";
 import { createHandleWebhook } from "$lib/server/usecase/handle-webhook";
 import { Redis } from "ioredis";
 
@@ -55,8 +53,36 @@ redis?.on("error", (err) => {
 
 const oauthStates = createOAuthStateStore(redis, dev);
 
+const nodeSshClient = new SshNodeCommandClient(async (serverId: string) => {
+  const server = await repo.servers.getByIdAny(serverId);
+  return server ?? null;
+});
+
+// Clone auth for push deploys: the job carries the connection, so no
+// host-matching is needed (unlike manual deploys resolving from a build URL).
+async function resolvePushCloneAuth(
+  orgId: string,
+  connectionId: string | null,
+  repoSlug: string,
+): Promise<CloneAuth | undefined> {
+  if (!connectionId) return undefined;
+  const connection = await repo.gitConnections.findGitConnection(
+    orgId,
+    connectionId,
+  );
+  if (!connection) return undefined;
+  return getGitProvider(connection.provider).resolveCloneAuth(
+    connection,
+    repoSlug,
+  );
+}
+
 const jobQueue = redis ? new RedisJobQueue(redis) : null;
-jobQueue?.start(createStubDeployJobHandler(repo.pushEvents));
+jobQueue?.start(
+  createDeployJobHandler(repo, nodeSshClient, {
+    resolveCloneAuth: resolvePushCloneAuth,
+  }),
+);
 if (jobQueue) {
   const stopQueue = () => {
     void jobQueue.stop();
@@ -64,11 +90,6 @@ if (jobQueue) {
   process.on("SIGTERM", stopQueue);
   process.on("SIGINT", stopQueue);
 }
-
-const nodeSshClient = new SshNodeCommandClient(async (serverId: string) => {
-  const server = await repo.servers.getByIdAny(serverId);
-  return server ?? null;
-});
 
 const reapWarmColors = createReapWarmColors(repo, nodeSshClient);
 
@@ -124,66 +145,6 @@ const stopScheduledJobs = () => {
 process.on("SIGTERM", stopScheduledJobs);
 process.on("SIGINT", stopScheduledJobs);
 
-// Derived from a clone URL, e.g. "https://github.com/octocat/hello.git"
-// -> "octocat/hello".
-function repoSlugFromUrl(url: string): string | null {
-  try {
-    const parts = new URL(url).pathname
-      .replace(/\.git$/, "")
-      .split("/")
-      .filter(Boolean);
-    if (parts.length < 2) return null;
-    return parts.slice(-2).join("/");
-  } catch {
-    return null;
-  }
-}
-
-// Best-effort clone-auth resolution for git-sourced deploys: match the
-// build-context URL's host against the org's provider connections, then ask
-// that provider's adapter for credentials. Returns undefined when no
-// connection matches (the repo is presumably public — the node will fail
-// loudly on clone if not). Resolution errors for a *matching* connection
-// propagate: a broken connection shouldn't silently fall back to public.
-async function resolveCloneAuth(
-  orgId: string,
-  appSpec: AppSpec,
-): Promise<CloneAuth | undefined> {
-  const buildContext = appSpec.buildContext;
-  if (!buildContext || !isHttpUrl(buildContext)) return undefined;
-
-  const target = new URL(buildContext);
-  const slug = repoSlugFromUrl(buildContext);
-  if (!slug) return undefined;
-
-  const connections = await repo.gitConnections.listGitConnections(orgId);
-  for (const connection of connections) {
-    const hostMatches =
-      connection.provider === "github"
-        ? target.host === "github.com" || target.host.endsWith(".github.com")
-        : (() => {
-            try {
-              return new URL(connection.baseUrl).host === target.host;
-            } catch {
-              return false;
-            }
-          })();
-    if (!hostMatches) continue;
-
-    const fullConnection = await repo.gitConnections.findGitConnection(
-      orgId,
-      connection.id,
-    );
-    if (!fullConnection) continue;
-
-    return getGitProvider(connection.provider).resolveCloneAuth(
-      fullConnection,
-      slug,
-    );
-  }
-  return undefined;
-}
-
 const { loginByIp, loginByAccount } = createLoginRateLimiters(redis);
 
 export const app = {
@@ -199,7 +160,7 @@ export const app = {
   useCases: {
     registerServer: createRegisterServer(repo),
     provisionServer: createProvisionServer(repo),
-    deployApp: createDeployApp(repo, nodeSshClient, { resolveCloneAuth }),
+    deployApp: createDeployApp(repo, nodeSshClient),
     rollbackApp: createRollbackApp(repo, nodeSshClient),
     listApps: createListApps(repo),
     getApp: createGetApp(repo),

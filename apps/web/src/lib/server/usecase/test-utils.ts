@@ -19,6 +19,7 @@ import type {
   RegistrationTokenRepository,
   AuditLogRepository,
   AuditLogRecord,
+  EnvVarRepository,
 } from "../ports/repository";
 import type { Session } from "../domain/session";
 import type { Org } from "../domain/org";
@@ -743,6 +744,19 @@ export class InMemoryGitSourceRepo implements GitSourceRepository {
     }
   }
 
+  async markDeployed(
+    appId: string,
+    sha: string,
+    deployedAt: string,
+  ): Promise<void> {
+    const source = await this.findByApp(appId);
+    if (source) {
+      source.shaDeployed = sha;
+      source.lastPushAt = deployedAt;
+      source.updatedAt = new Date().toISOString();
+    }
+  }
+
   async listExpiredWarm(
     now: string,
   ): Promise<Array<GitSource & { serverId: string }>> {
@@ -764,6 +778,17 @@ export class InMemoryAuditLogRepo implements AuditLogRepository {
 
   async record(input: AuditLogRecord): Promise<void> {
     this.entries.push(input);
+  }
+}
+
+export class InMemoryEnvVarRepo implements EnvVarRepository {
+  data = new Map<string, Record<string, string>>();
+
+  async listByApp(
+    _orgId: string,
+    appId: string,
+  ): Promise<Record<string, string>> {
+    return { ...(this.data.get(appId) ?? {}) };
   }
 }
 
@@ -845,6 +870,7 @@ export class InMemoryRepository implements Repository {
   gitSources: InMemoryGitSourceRepo;
   pushEvents: InMemoryPushEventRepo;
   auditLogs: InMemoryAuditLogRepo;
+  envVars: InMemoryEnvVarRepo;
 
   constructor() {
     this.apps = new InMemoryAppRepo();
@@ -864,6 +890,7 @@ export class InMemoryRepository implements Repository {
     );
     this.pushEvents = new InMemoryPushEventRepo();
     this.auditLogs = new InMemoryAuditLogRepo();
+    this.envVars = new InMemoryEnvVarRepo();
   }
 }
 

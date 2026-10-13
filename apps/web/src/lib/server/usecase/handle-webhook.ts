@@ -87,6 +87,7 @@ export function createHandleWebhook(
     });
 
     const result = await jobQueue.enqueue({
+      orgId: connection.orgId,
       appId: source.appId,
       pushEventId: event.id,
       sha: push.sha,

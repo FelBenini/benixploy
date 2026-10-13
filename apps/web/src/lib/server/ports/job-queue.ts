@@ -1,4 +1,5 @@
 export interface DeployJob {
+  orgId: string;
   appId: string;
   pushEventId: string;
   sha: string;

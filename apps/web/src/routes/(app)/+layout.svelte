@@ -7,6 +7,7 @@
   import Settings from "@lucide/svelte/icons/settings";
   import Boxes from "@lucide/svelte/icons/boxes";
   import GitBranch from "@lucide/svelte/icons/git-branch";
+  import Rocket from "@lucide/svelte/icons/rocket";
   import { page } from "$app/state";
   import { fade } from "svelte/transition";
 
@@ -44,6 +45,11 @@
       title: "Git Sources",
       url: "/git-sources",
       icon: GitBranch,
+    },
+    {
+      title: "Test Deploy",
+      url: "/test-deploy",
+      icon: Rocket,
     },
     {
       title: "Settings",

@@ -164,6 +164,7 @@ describe("handleWebhook", () => {
     expect(result.status).toBe(202);
     expect(queue.calls).toHaveLength(1);
     expect(queue.calls[0]).toMatchObject({
+      orgId: ORG,
       appId: "app-1",
       connectionId: CONN_ID,
       sha: "abc123",
